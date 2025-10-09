@@ -30,20 +30,18 @@ services:
       - key: EMAIL_FROM
         sync: false
       - key: CORS_ORIGIN
-        value: https://thedigitaltrading.com,https://www.thedigitaltrading.com
+        fromService:
+          type: web
+          name: thedigitaltrading-frontend
+          property: host
       - key: FRONTEND_URL
-        value: https://thedigitaltrading.com
-      - key: REACT_APP_API_BASE_URL
-        generateValue: true
-      - key: REACT_APP_API_URL
-        generateValue: true
-      - key: REACT_APP_SOCKET_URL
-        generateValue: true
-      - key: REACT_APP_WS_BASE_URL
-        generateValue: true
+        fromService:
+          type: web
+          name: thedigitaltrading-frontend
+          property: host
 
   - type: web
-    name: thedigitaltrading-client
+    name: thedigitaltrading-frontend
     env: static
     buildCommand: cd client && npm install && npm run build
     staticPublishPath: ./client/build
@@ -74,3 +72,5 @@ services:
           type: web
           name: thedigitaltrading-api
           property: host
+      - key: REACT_APP_FRONTEND_URL
+        generateValue: true

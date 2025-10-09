@@ -4,7 +4,8 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-console.log('🚀 Starting production deployment...');
+console.log('🚀 THE DIGITAL TRADING - Production Deployment Script');
+console.log('==================================================');
 
 // Check if we're in the right directory
 if (!fs.existsSync('client') || !fs.existsSync('server')) {
@@ -14,34 +15,30 @@ if (!fs.existsSync('client') || !fs.existsSync('server')) {
 
 try {
   // Install server dependencies
-  console.log('📦 Installing server dependencies...');
+  console.log('\n📦 Installing server dependencies...');
   execSync('cd server && npm install', { stdio: 'inherit' });
 
   // Install client dependencies
-  console.log('📦 Installing client dependencies...');
+  console.log('\n📦 Installing client dependencies...');
   execSync('cd client && npm install', { stdio: 'inherit' });
 
   // Build the client
-  console.log('🏗️  Building client for production...');
+  console.log('\n🏗️ Building client for production...');
   execSync('cd client && npm run build', { stdio: 'inherit' });
 
-  console.log('✅ Production build completed successfully!');
-  console.log('');
-  console.log('📋 Next steps:');
-  console.log('1. Deploy the server to Render using the render.yaml configuration');
-  console.log('2. Deploy the client to Vercel or use the static build from client/build');
-  console.log('3. Set up your environment variables on the hosting platform');
-  console.log('4. Configure your custom domain (thedigitaltrading.com)');
-  console.log('');
-  console.log('🔧 Required environment variables for production:');
-  console.log('- MONGO_URI (MongoDB connection string)');
-  console.log('- JWT_SECRET (JWT signing secret)');
-  console.log('- BREVO_API_KEY (Email service API key)');
-  console.log('- EMAIL_* variables (Email configuration)');
-  console.log('');
-  console.log('🌐 Your app will be available at:');
-  console.log('- Frontend: https://thedigitaltrading.com');
-  console.log('- API: https://thedigitaltrading-api.onrender.com');
+  console.log('\n✅ Build completed successfully!');
+  console.log('\n🚀 Next steps for deployment:');
+  console.log('1. Deploy to Render using render.yaml:');
+  console.log('   - Go to https://render.com');
+  console.log('   - Connect your GitHub repository');
+  console.log('   - Create a Blueprint deployment');
+  console.log('   - Render will automatically deploy both frontend and backend');
+  console.log('   - Set environment variables (see DEPLOYMENT.md)');
+  console.log('\n2. Alternative - Deploy services manually:');
+  console.log('   - Create Web Service for backend (server folder)');
+  console.log('   - Create Static Site for frontend (client folder)');
+  console.log('\n3. Configure custom domain (optional)');
+  console.log('\n📖 For detailed instructions, see DEPLOYMENT.md');
 
 } catch (error) {
   console.error('❌ Deployment failed:', error.message);
