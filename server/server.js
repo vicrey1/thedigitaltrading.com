@@ -23,7 +23,14 @@ app.use('/socket.io', (req, res, next) => {
 });
 const server = http.createServer(app);
 
-const io = socketio(server, { cors: { origin: [process.env.CORS_ORIGIN || 'http://localhost:3000'], credentials: true } });
+// Parse CORS origins - handle both single origin and comma-separated multiple origins
+const corsOrigins = process.env.CORS_ORIGIN 
+  ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
+  : ['http://localhost:3000'];
+
+console.log('[CORS] Configured origins:', corsOrigins);
+
+const io = socketio(server, { cors: { origin: corsOrigins, credentials: true } });
 
 // Basic Socket.IO connection handler
 io.on('connection', (socket) => {
@@ -33,21 +40,29 @@ io.on('connection', (socket) => {
   });
 });
 
-// CORS Middleware
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'], // Added PATCH
+// CORS configuration function
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (corsOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log('[CORS] Blocked origin:', origin, 'Allowed origins:', corsOrigins);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   exposedHeaders: ['Authorization']
-}));
+};
+
+// CORS Middleware
+app.use(cors(corsOptions));
 // Handle preflight requests for all routes
-app.options('*', cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'], // Added PATCH
-  credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
-}));
+app.options('*', cors(corsOptions));
 // Ensure Authorization header is explicitly allowed for all responses (safety for proxies)
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
