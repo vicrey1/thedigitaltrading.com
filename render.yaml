@@ -30,15 +30,9 @@ services:
       - key: EMAIL_FROM
         sync: false
       - key: CORS_ORIGIN
-        fromService:
-          type: web
-          name: thedigitaltrading-frontend
-          property: host
+        value: https://www.thedigitaltrading.com,https://thedigitaltrading.com,https://api.thedigitaltrading.com
       - key: FRONTEND_URL
-        fromService:
-          type: web
-          name: thedigitaltrading-frontend
-          property: host
+        value: https://www.thedigitaltrading.com
 
   - type: web
     name: thedigitaltrading-frontend
@@ -53,24 +47,12 @@ services:
       - key: NODE_VERSION
         value: 18
       - key: REACT_APP_API_URL
-        fromService:
-          type: web
-          name: thedigitaltrading-api
-          property: host
+        value: https://api.thedigitaltrading.com
       - key: REACT_APP_API_BASE_URL
-        fromService:
-          type: web
-          name: thedigitaltrading-api
-          property: host
+        value: https://api.thedigitaltrading.com
       - key: REACT_APP_SOCKET_URL
-        fromService:
-          type: web
-          name: thedigitaltrading-api
-          property: host
+        value: wss://api.thedigitaltrading.com
       - key: REACT_APP_WS_BASE_URL
-        fromService:
-          type: web
-          name: thedigitaltrading-api
-          property: host
+        value: wss://api.thedigitaltrading.com
       - key: REACT_APP_FRONTEND_URL
-        generateValue: true
+        value: https://www.thedigitaltrading.com
