@@ -1,24 +1,76 @@
 services:
   - type: web
-    name: thedigitaltrading-client
-    env: static
-    buildCommand: cd client && npm install && npm run build
-    staticPublishPath: ./client/build
-    envVars:
-      - key: NODE_VERSION
-        value: 16
-      - key: REACT_APP_API_URL
-        sync: false
-
-  - type: web
     name: thedigitaltrading-api
     env: node
     buildCommand: cd server && npm install
     startCommand: cd server && npm start
     envVars:
       - key: NODE_VERSION
-        value: 16
+        value: 18
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 5000
+        value: 10000
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: EMAIL_HOST
+        sync: false
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
+      - key: EMAIL_PORT
+        value: 465
+      - key: EMAIL_SECURE
+        value: true
+      - key: EMAIL_FROM
+        sync: false
+      - key: CORS_ORIGIN
+        value: https://thedigitaltrading.com,https://www.thedigitaltrading.com
+      - key: FRONTEND_URL
+        value: https://thedigitaltrading.com
+      - key: REACT_APP_API_BASE_URL
+        generateValue: true
+      - key: REACT_APP_API_URL
+        generateValue: true
+      - key: REACT_APP_SOCKET_URL
+        generateValue: true
+      - key: REACT_APP_WS_BASE_URL
+        generateValue: true
+
+  - type: web
+    name: thedigitaltrading-client
+    env: static
+    buildCommand: cd client && npm install && npm run build
+    staticPublishPath: ./client/build
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_VERSION
+        value: 18
+      - key: REACT_APP_API_URL
+        fromService:
+          type: web
+          name: thedigitaltrading-api
+          property: host
+      - key: REACT_APP_API_BASE_URL
+        fromService:
+          type: web
+          name: thedigitaltrading-api
+          property: host
+      - key: REACT_APP_SOCKET_URL
+        fromService:
+          type: web
+          name: thedigitaltrading-api
+          property: host
+      - key: REACT_APP_WS_BASE_URL
+        fromService:
+          type: web
+          name: thedigitaltrading-api
+          property: host
