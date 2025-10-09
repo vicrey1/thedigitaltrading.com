@@ -12,6 +12,7 @@ const geoip = require('geoip-lite');
 const useragent = require('useragent');
 const bcrypt = require('bcryptjs');
 const { sendMail } = require('../utils/mailer');
+const brevoOtpService = require('../utils/brevoOtpService');
 
 // Middleware to log device/browser/IP/location on login
 async function logDeviceHistory(req, res, next) {
@@ -513,23 +514,31 @@ router.post('/send-profile-edit-otp', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const code = brevoOtpService.generateOTP();
     user.profileEditOtp = code;
     user.profileEditOtpExpiry = Date.now() + 10 * 60 * 1000;
     await user.save();
-    await sendMail({
-      to: user.email,
-      subject: 'Profile Edit Confirmation',
-      html: `<div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px 24px;background:#18181b;border-radius:16px;color:#fff;text-align:center;">
-        <div style="font-family:sans-serif; font-size:2.5rem; font-weight:bold; letter-spacing:2px; margin-bottom:24px;">
-          <span style="color:#FFD700;">LUX</span><span style="color:#fff;">HEDGE</span>
-        </div>
-        <h2 style="color:#FFD700;">Profile Edit Confirmation</h2>
-        <p style="margin:24px 0;">Your OTP code is:</p>
-        <div style="font-size:2rem;font-weight:bold;letter-spacing:8px;color:#FFD700;">${code}</div>
-        <p style="margin-top:32px;font-size:12px;color:#aaa;">This code expires in 10 minutes.</p>
-      </div>`
-    });
+    
+    try {
+      await brevoOtpService.sendProfileEditOTP(user.email, code);
+      console.log('[PROFILE EDIT] OTP sent via Brevo to:', user.email);
+    } catch (err) {
+      console.error('[PROFILE EDIT] Error sending via Brevo:', err);
+      // Fallback to original mailer
+      await sendMail({
+        to: user.email,
+        subject: 'Profile Edit Confirmation',
+        html: `<div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px 24px;background:#18181b;border-radius:16px;color:#fff;text-align:center;">
+          <div style="font-family:sans-serif; font-size:2.5rem; font-weight:bold; letter-spacing:2px; margin-bottom:24px;">
+            <span style="color:#FFD700;">THE</span><span style="color:#fff;"> DIGITAL TRADING</span>
+          </div>
+          <h2 style="color:#FFD700;">Profile Edit Confirmation</h2>
+          <p style="margin:24px 0;">Your OTP code is:</p>
+          <div style="font-size:2rem;font-weight:bold;letter-spacing:8px;color:#FFD700;">${code}</div>
+          <p style="margin-top:32px;font-size:12px;color:#aaa;">This code expires in 10 minutes.</p>
+        </div>`
+      });
+    }
     res.json({ message: 'OTP sent to your old email.' });
   } catch (err) {
     res.status(500).json({ message: err.message });

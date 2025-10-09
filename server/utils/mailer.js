@@ -1,33 +1,50 @@
 // server/utils/mailer.js
-const nodemailer = require('nodemailer');
+const brevo = require('@getbrevo/brevo');
 
+// Initialize Brevo API client
+let defaultClient = brevo.ApiClient.instance;
+let apiKey = defaultClient.authentications['api-key'];
+apiKey.apiKey = process.env.BREVO_API_KEY;
+
+let apiInstance = new brevo.TransactionalEmailsApi();
+
+async function sendMail({ to, subject, text, html }) {
+  const sendSmtpEmail = new brevo.SendSmtpEmail();
+  
+  sendSmtpEmail.subject = subject;
+  sendSmtpEmail.htmlContent = html || `<html><body>${text}</body></html>`;
+  sendSmtpEmail.sender = { 
+    name: "THE DIGITAL TRADING", 
+    email: process.env.EMAIL_FROM || "noreply@thedigitaltrading.com" 
+  };
+  sendSmtpEmail.to = [{ email: to }];
+  
+  console.log('Sending email via Brevo with options:', {
+    to: sendSmtpEmail.to,
+    subject: sendSmtpEmail.subject,
+    sender: sendSmtpEmail.sender
+  });
+  
+  try {
+    const data = await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.log('Email sent via Brevo:', data);
+    return data;
+  } catch (err) {
+    console.error('Error sending email via Brevo:', err);
+    throw err;
+  }
+}
+
+// Legacy nodemailer compatibility (fallback)
+const nodemailer = require('nodemailer');
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
   port: parseInt(process.env.EMAIL_PORT, 10),
-  secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for 587
+  secure: process.env.EMAIL_SECURE === 'true',
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
   }
 });
 
-async function sendMail({ to, subject, text, html }) {
-  const mailOptions = {
-    from: `"THE DIGITAL TRADING" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
-    to,
-    subject,
-    text,
-    html,
-  };
-  console.log('Sending email with options:', mailOptions);
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent:', info);
-    return info;
-  } catch (err) {
-    console.error('Error sending email:', err);
-    throw err;
-  }
-}
-
-module.exports = { sendMail, transporter };
+module.exports = { sendMail, transporter, brevoApiInstance: apiInstance };

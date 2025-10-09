@@ -11,6 +11,7 @@ const speakeasy = require('speakeasy');
 const qrcode = require('qrcode');
 const axios = require('axios');
 const { sendMail } = require('../utils/mailer');
+const brevoOtpService = require('../utils/brevoOtpService');
 const crypto = require('crypto');
 const bitcoin = require('bitcoinjs-lib');
 const ethers = require('ethers');
@@ -173,7 +174,7 @@ router.post('/register', async (req, res) => {
     }
     // Generate new email verification token and OTP
     const emailToken = crypto.randomBytes(32).toString('hex');
-    const emailOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    const emailOtp = brevoOtpService.generateOTP();
     const expiry = Date.now() + 24 * 60 * 60 * 1000;
     if (pending) {
       // Update existing pending registration with all fields
@@ -210,20 +211,27 @@ router.post('/register', async (req, res) => {
     const verifyUrlFrontend = `${process.env.FRONTEND_URL}/verify-email/${emailToken}`;
     console.log('[EMAIL VERIFICATION] Registration flow: email:', email, 'Token:', emailToken, 'Expiry:', new Date(expiry).toISOString(), 'Backend verify URL:', verifyUrlBackend, 'Frontend verify URL:', verifyUrlFrontend);
     try {
-      await sendMail({
-        to: email,
-        subject: 'Verify Your Email',
-        html: `<div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px 24px;background:#18181b;border-radius:16px;color:#fff;text-align:center;">
-          <h2 style="color:#FFD700;">Verify Your Email</h2>
-          <p style="margin:24px 0;">Open the frontend verification page below to verify your email address and complete registration, or use the OTP code shown.</p>
-          <!-- Removed direct backend verification button to avoid GET-side failures; user should use frontend SPA -->
-          <a href="${verifyUrlFrontend}" style="display:inline-block;padding:12px 24px;background:#444;color:#fff;border-radius:6px;text-decoration:none;margin:8px 0;font-size:13px;">Open frontend verification page</a>
-          <p style="margin:24px 0;font-size:18px;">Or enter this OTP code: <span style="font-weight:bold;letter-spacing:2px;">${emailOtp}</span></p>
-          <p style="margin-top:24px;font-size:13px;color:#aaa;">If you did not create an account, you can ignore this email.</p>
-        </div>`
-      });
+      await brevoOtpService.sendRegistrationOTP(email, emailOtp, verifyUrlFrontend);
+      console.log('[EMAIL VERIFICATION] Registration OTP sent via Brevo to:', email);
     } catch (err) {
-      console.error('[EMAIL VERIFICATION] Error sending registration email:', err);
+      console.error('[EMAIL VERIFICATION] Error sending registration email via Brevo:', err);
+      // Fallback to original mailer if Brevo fails
+      try {
+        await sendMail({
+          to: email,
+          subject: 'Verify Your Email',
+          html: `<div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px 24px;background:#18181b;border-radius:16px;color:#fff;text-align:center;">
+            <h2 style="color:#FFD700;">Verify Your Email</h2>
+            <p style="margin:24px 0;">Open the frontend verification page below to verify your email address and complete registration, or use the OTP code shown.</p>
+            <a href="${verifyUrlFrontend}" style="display:inline-block;padding:12px 24px;background:#444;color:#fff;border-radius:6px;text-decoration:none;margin:8px 0;font-size:13px;">Open frontend verification page</a>
+            <p style="margin:24px 0;font-size:18px;">Or enter this OTP code: <span style="font-weight:bold;letter-spacing:2px;">${emailOtp}</span></p>
+            <p style="margin-top:24px;font-size:13px;color:#aaa;">If you did not create an account, you can ignore this email.</p>
+          </div>`
+        });
+        console.log('[EMAIL VERIFICATION] Fallback email sent successfully');
+      } catch (fallbackErr) {
+        console.error('[EMAIL VERIFICATION] Fallback email also failed:', fallbackErr);
+      }
     }
     res.status(200).json({ message: 'Registration successful. Please check your email to verify your account.' });
   } catch (err) {
@@ -296,22 +304,30 @@ router.post('/forgot-password', async (req, res) => {
     user.passwordResetToken = token;
     user.passwordResetExpiry = expiry;
     // Generate 6-digit OTP for password reset
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = brevoOtpService.generateOTP();
     user.passwordResetOtp = otp;
     user.passwordResetOtpExpiry = expiry;
     await user.save();
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${token}`;
-    await sendMail({
-      to: user.email,
-      subject: 'Password Reset Request',
-      html: `<div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px 24px;background:#18181b;border-radius:16px;color:#fff;text-align:center;">
-        <h2 style="color:#FFD700;">Reset Your Password</h2>
-        <p style="margin:24px 0;">Click the button below to reset your password. This link and OTP will expire in 1 hour.</p>
-        <a href="${resetUrl}" style="display:inline-block;padding:12px 32px;background:#FFD700;color:#18181b;font-weight:bold;border-radius:8px;text-decoration:none;font-size:18px;">Reset Password</a>
-        <p style="margin:24px 0;font-size:18px;">Or enter this OTP code: <span style="font-weight:bold;letter-spacing:2px;">${otp}</span></p>
-        <p style="margin-top:32px;font-size:12px;color:#aaa;">If you did not request this, you can ignore this email.</p>
-      </div>`
-    });
+    
+    try {
+      await brevoOtpService.sendPasswordResetOTP(user.email, otp, resetUrl);
+      console.log('[PASSWORD RESET] OTP sent via Brevo to:', user.email);
+    } catch (err) {
+      console.error('[PASSWORD RESET] Error sending via Brevo:', err);
+      // Fallback to original mailer
+      await sendMail({
+        to: user.email,
+        subject: 'Password Reset Request',
+        html: `<div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px 24px;background:#18181b;border-radius:16px;color:#fff;text-align:center;">
+          <h2 style="color:#FFD700;">Reset Your Password</h2>
+          <p style="margin:24px 0;">Click the button below to reset your password. This link and OTP will expire in 1 hour.</p>
+          <a href="${resetUrl}" style="display:inline-block;padding:12px 32px;background:#FFD700;color:#18181b;font-weight:bold;border-radius:8px;text-decoration:none;font-size:18px;">Reset Password</a>
+          <p style="margin:24px 0;font-size:18px;">Or enter this OTP code: <span style="font-weight:bold;letter-spacing:2px;">${otp}</span></p>
+          <p style="margin-top:32px;font-size:12px;color:#aaa;">If you did not request this, you can ignore this email.</p>
+        </div>`
+      });
+    }
     res.json({ message: 'If the email exists, a reset link and OTP have been sent.' });
   } catch (err) {
     console.error(err.message);
@@ -348,26 +364,34 @@ router.post('/send-verification', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const code = brevoOtpService.generateOTP();
     const expiry = Date.now() + 10 * 60 * 1000; // 10 minutes
     user.emailVerificationCode = code;
     user.emailVerificationExpiry = expiry;
     console.log('Verification code generated:', code, 'for user:', user.email);
     await user.save();
     console.log('User after save:', await User.findById(user.id));
-    await sendMail({
-      to: user.email,
-      subject: 'Verify Your Email',
-      html: `<div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px 24px;background:#18181b;border-radius:16px;color:#fff;text-align:center;">
-        <div style="font-family:sans-serif; font-size:2.5rem; font-weight:bold; letter-spacing:2px; margin-bottom:24px;">
-          <span style="color:#FFD700;">LUX</span><span style="color:#fff;">HEDGE</span>
-        </div>
-        <h2 style="color:#FFD700;">Verify Your Email</h2>
-        <p style="margin:24px 0;">Your verification code is:</p>
-        <div style="font-size:2rem;font-weight:bold;letter-spacing:8px;color:#FFD700;">${code}</div>
-        <p style="margin-top:32px;font-size:12px;color:#aaa;">This code expires in 10 minutes.</p>
-      </div>`
-    });
+    
+    try {
+      await brevoOtpService.sendEmailVerificationOTP(user.email, code);
+      console.log('[EMAIL VERIFICATION] OTP sent via Brevo to:', user.email);
+    } catch (err) {
+      console.error('[EMAIL VERIFICATION] Error sending via Brevo:', err);
+      // Fallback to original mailer
+      await sendMail({
+        to: user.email,
+        subject: 'Verify Your Email',
+        html: `<div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px 24px;background:#18181b;border-radius:16px;color:#fff;text-align:center;">
+          <div style="font-family:sans-serif; font-size:2.5rem; font-weight:bold; letter-spacing:2px; margin-bottom:24px;">
+            <span style="color:#FFD700;">THE</span><span style="color:#fff;"> DIGITAL TRADING</span>
+          </div>
+          <h2 style="color:#FFD700;">Verify Your Email</h2>
+          <p style="margin:24px 0;">Your verification code is:</p>
+          <div style="font-size:2rem;font-weight:bold;letter-spacing:8px;color:#FFD700;">${code}</div>
+          <p style="margin-top:32px;font-size:12px;color:#aaa;">This code expires in 10 minutes.</p>
+        </div>`
+      });
+    }
     res.json({ message: 'Verification code sent to your email.' });
   } catch (err) {
     console.error(err.message);
@@ -819,7 +843,7 @@ router.post('/resend-otp', async (req, res) => {
     const pending = await PendingUser.findOne({ email });
     if (!pending) return res.status(404).json({ message: 'No pending registration found for this email.' });
     // Generate new OTP and update expiry
-    const emailOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    const emailOtp = brevoOtpService.generateOTP();
     const expiry = Date.now() + 24 * 60 * 60 * 1000;
     pending.emailOtp = emailOtp;
     pending.emailOtpExpiry = expiry;
@@ -829,18 +853,25 @@ router.post('/resend-otp', async (req, res) => {
     const verifyUrlBackend = `${backendBase}/api/auth/verify-email/${pending.emailVerificationToken}`;
     const verifyUrlFrontend = `${process.env.FRONTEND_URL}/verify-email/${pending.emailVerificationToken}`;
     console.log('[RESEND OTP] Sending new OTP for', email, 'Backend URL:', verifyUrlBackend, 'Frontend URL:', verifyUrlFrontend);
-    await sendMail({
-      to: email,
-      subject: 'Verify Your Email',
-      html: `<div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px 24px;background:#18181b;border-radius:16px;color:#fff;text-align:center;">
-        <h2 style="color:#FFD700;">Verify Your Email</h2>
-        <p style="margin:24px 0;">Open the frontend verification page below to verify your email address and complete registration, or use the OTP code shown.</p>
-        <!-- Removed direct backend verification button on resend emails as well -->
-        <a href="${verifyUrlFrontend}" style="display:inline-block;padding:12px 24px;background:#444;color:#fff;border-radius:6px;text-decoration:none;margin:8px 0;font-size:13px;">Open frontend verification page</a>
-        <p style="margin:24px 0;font-size:18px;">Or enter this OTP code: <span style="font-weight:bold;letter-spacing:2px;">${emailOtp}</span></p>
-        <p style="margin-top:24px;font-size:13px;color:#aaa;">If you did not create an account, you can ignore this email.</p>
-      </div>`
-    });
+    
+    try {
+      await brevoOtpService.sendRegistrationOTP(email, emailOtp, verifyUrlFrontend);
+      console.log('[RESEND OTP] OTP sent via Brevo to:', email);
+    } catch (err) {
+      console.error('[RESEND OTP] Error sending via Brevo:', err);
+      // Fallback to original mailer
+      await sendMail({
+        to: email,
+        subject: 'Verify Your Email',
+        html: `<div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px 24px;background:#18181b;border-radius:16px;color:#fff;text-align:center;">
+          <h2 style="color:#FFD700;">Verify Your Email</h2>
+          <p style="margin:24px 0;">Open the frontend verification page below to verify your email address and complete registration, or use the OTP code shown.</p>
+          <a href="${verifyUrlFrontend}" style="display:inline-block;padding:12px 24px;background:#444;color:#fff;border-radius:6px;text-decoration:none;margin:8px 0;font-size:13px;">Open frontend verification page</a>
+          <p style="margin:24px 0;font-size:18px;">Or enter this OTP code: <span style="font-weight:bold;letter-spacing:2px;">${emailOtp}</span></p>
+          <p style="margin-top:24px;font-size:13px;color:#aaa;">If you did not create an account, you can ignore this email.</p>
+        </div>`
+      });
+    }
     res.json({ message: 'A new OTP has been sent to your email.' });
   } catch (err) {
     console.error('Resend OTP error:', err);
