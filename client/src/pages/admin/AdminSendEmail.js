@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { sendAdminEmail } from '../../services/adminAPI';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import { FiMail, FiSend, FiFileText, FiUser, FiEdit3, FiLoader } from 'react-icons/fi';
 
 const AdminSendEmail = () => {
   const [to, setTo] = useState('');
@@ -11,6 +12,16 @@ const AdminSendEmail = () => {
   const [loading, setLoading] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState('Welcome Email');
   const [richMessage, setRichMessage] = useState('');
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const templates = [
     {
@@ -21,7 +32,7 @@ const AdminSendEmail = () => {
           <span style="color:#FFD700;">LUX</span><span style="color:#fff;">HEDGE</span>
         </div>
         <h2 style="color:#FFD700;">Welcome to THE DIGITAL TRADING!</h2>
-        <p>We’re excited to have you on board. Explore investment opportunities and grow your wealth with us!</p>
+        <p>We're excited to have you on board. Explore investment opportunities and grow your wealth with us!</p>
       </div>`
     },
     {
@@ -74,40 +85,140 @@ const AdminSendEmail = () => {
   };
 
   return (
-    <div className="glassmorphic p-2 sm:p-6 md:p-8 rounded-xl max-w-full sm:max-w-lg mx-auto mt-4 sm:mt-12 overflow-x-auto">
-      <h2 className="text-2xl font-bold mb-6 text-center">Send Email to User</h2>
-      <form onSubmit={handleSend} className="space-y-4">
-        <div>
-          <label className="block mb-1">To (User Email)</label>
-          <input type="email" className="w-full p-2 rounded bg-dark border border-gray-700" value={to} onChange={e => setTo(e.target.value)} required />
-        </div>
-        <div>
-          <label className="block mb-1">Subject</label>
-          <input type="text" className="w-full p-2 rounded bg-dark border border-gray-700" value={subject} onChange={e => setSubject(e.target.value)} required />
-        </div>
-        <div>
-          <label className="block mb-1">Template</label>
-          <select className="w-full p-2 rounded bg-dark border border-gray-700" value={selectedTemplate} onChange={handleTemplateChange}>
-            {templates.map(t => <option key={t.label} value={t.label}>{t.label}</option>)}
-          </select>
-        </div>
-        {selectedTemplate === 'Custom' && (
-          <div>
-            <label className="block mb-1">Rich Message</label>
-            <ReactQuill theme="snow" value={richMessage} onChange={setRichMessage} className="bg-dark text-white" />
+    <div className={`max-w-full ${isMobile ? 'p-4' : 'sm:max-w-2xl p-2 sm:p-6'} w-full mx-auto`}>
+      <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+        {/* Header */}
+        <div className="bg-gray-900 px-6 py-4 border-b border-gray-700">
+          <div className="flex items-center space-x-3">
+            <FiMail className="w-6 h-6 text-gold" />
+            <h2 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-gold`}>Send Email to User</h2>
           </div>
-        )}
-        {selectedTemplate !== 'Custom' && (
-          <div>
-            <label className="block mb-1">HTML Message</label>
-            <textarea className="w-full p-2 rounded bg-dark border border-gray-700 min-h-[120px]" value={html} onChange={e => setHtml(e.target.value)} required />
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSend} className="p-6 space-y-6">
+          {/* Recipient */}
+          <div className="space-y-2">
+            <label className="flex items-center text-sm font-medium text-gray-300">
+              <FiUser className="w-4 h-4 mr-2" />
+              To (User Email)
+            </label>
+            <input 
+              type="email" 
+              className="w-full px-4 py-3 rounded-lg bg-gray-900 text-white border border-gray-600 focus:border-gold outline-none text-sm"
+              value={to} 
+              onChange={e => setTo(e.target.value)} 
+              placeholder="user@example.com"
+              required 
+            />
           </div>
-        )}
-        <button type="submit" className="w-full py-3 rounded-lg font-bold bg-gold text-black hover:bg-yellow-600 transition" disabled={loading}>
-          {loading ? 'Sending...' : 'Send Email'}
-        </button>
-        {message && <div className="text-center mt-2">{message}</div>}
-      </form>
+
+          {/* Subject */}
+          <div className="space-y-2">
+            <label className="flex items-center text-sm font-medium text-gray-300">
+              <FiEdit3 className="w-4 h-4 mr-2" />
+              Subject
+            </label>
+            <input 
+              type="text" 
+              className="w-full px-4 py-3 rounded-lg bg-gray-900 text-white border border-gray-600 focus:border-gold outline-none text-sm"
+              value={subject} 
+              onChange={e => setSubject(e.target.value)} 
+              placeholder="Email subject"
+              required 
+            />
+          </div>
+
+          {/* Template Selection */}
+          <div className="space-y-2">
+            <label className="flex items-center text-sm font-medium text-gray-300">
+              <FiFileText className="w-4 h-4 mr-2" />
+              Template
+            </label>
+            <select 
+              className="w-full px-4 py-3 rounded-lg bg-gray-900 text-white border border-gray-600 focus:border-gold outline-none text-sm"
+              value={selectedTemplate} 
+              onChange={handleTemplateChange}
+            >
+              {templates.map(t => (
+                <option key={t.label} value={t.label}>{t.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Rich Text Editor for Custom Template */}
+          {selectedTemplate === 'Custom' && (
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-300">Rich Message</label>
+              <div className="bg-gray-900 rounded-lg border border-gray-600 overflow-hidden">
+                <ReactQuill 
+                  theme="snow" 
+                  value={richMessage} 
+                  onChange={setRichMessage} 
+                  className="text-white"
+                  style={{
+                    backgroundColor: '#111827',
+                    color: 'white'
+                  }}
+                  modules={{
+                    toolbar: [
+                      [{ 'header': [1, 2, 3, false] }],
+                      ['bold', 'italic', 'underline'],
+                      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                      ['link'],
+                      ['clean']
+                    ]
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* HTML Message for Non-Custom Templates */}
+          {selectedTemplate !== 'Custom' && (
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-300">HTML Message</label>
+              <textarea 
+                className="w-full px-4 py-3 rounded-lg bg-gray-900 text-white border border-gray-600 focus:border-gold outline-none text-sm min-h-[120px] resize-y"
+                value={html} 
+                onChange={e => setHtml(e.target.value)} 
+                placeholder="HTML content for the email"
+                required 
+              />
+            </div>
+          )}
+
+          {/* Send Button */}
+          <button 
+            type="submit" 
+            className="w-full px-6 py-3 bg-gold text-black font-semibold rounded-lg hover:bg-yellow-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <FiLoader className="w-4 h-4 mr-2 animate-spin" />
+                Sending...
+              </>
+            ) : (
+              <>
+                <FiSend className="w-4 h-4 mr-2" />
+                Send Email
+              </>
+            )}
+          </button>
+
+          {/* Status Message */}
+          {message && (
+            <div className={`text-center p-3 rounded-lg text-sm font-medium ${
+              message.includes('✅') 
+                ? 'bg-green-900 bg-opacity-20 text-green-400 border border-green-600' 
+                : 'bg-red-900 bg-opacity-20 text-red-400 border border-red-600'
+            }`}>
+              {message}
+            </div>
+          )}
+        </form>
+      </div>
     </div>
   );
 };

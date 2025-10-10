@@ -1,217 +1,344 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
+import { FiSearch, FiRefreshCw, FiEye, FiTrash2, FiUserCheck, FiFile, FiImage, FiFileText, FiDownload, FiX, FiUser, FiCalendar, FiFolder } from 'react-icons/fi';
 
-export default function SupportUploads() {
+const SupportUploads = () => {
   const [uploads, setUploads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [preview, setPreview] = useState(null); // { url, originalName }
-  const [confirmDelete, setConfirmDelete] = useState(null); // { id, name }
-  const [actionLoading, setActionLoading] = useState(false);
-
-  // Reassign modal state
-  const [reassignModal, setReassignModal] = useState(null); // { id, name, currentUserId }
+  const [preview, setPreview] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [reassignModal, setReassignModal] = useState(null);
   const [users, setUsers] = useState([]);
   const [userSearch, setUserSearch] = useState('');
-  const [usersLoading, setUsersLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     fetchUploads();
   }, []);
 
   const fetchUploads = async () => {
-    setLoading(true);
     try {
-      const res = await axios.get('/api/admin/support/uploads');
-      setUploads(res.data);
-    } catch (e) {
-      console.error('Failed to fetch uploads', e);
+      setLoading(true);
+      const response = await fetch('/api/admin/support/uploads', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await response.json();
+      setUploads(data);
+    } catch (error) {
+      console.error('Error fetching uploads:', error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  const handleDelete = (id, name) => {
-    setConfirmDelete({ id, name });
-  };
-
-  const confirmDeleteNow = async () => {
-    if (!confirmDelete) return;
-    setActionLoading(true);
+  const deleteUpload = async (id) => {
     try {
-      await axios.delete(`/api/admin/support/uploads/${confirmDelete.id}`);
-      setConfirmDelete(null);
-      await fetchUploads();
-    } catch (e) {
-      alert('Delete failed');
+      await fetch(`/api/admin/support/uploads/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      setUploads(uploads.filter(u => u._id !== id));
+      setDeleteConfirm(null);
+    } catch (error) {
+      console.error('Error deleting upload:', error);
     }
-    setActionLoading(false);
   };
 
-  const openReassignModal = async (upload) => {
-    setReassignModal({ id: upload._id, name: upload.originalName || upload.filename, currentUserId: upload.userId || null });
-    // Lazy-load users list if not already loaded
-    if (users.length === 0) {
-      setUsersLoading(true);
-      try {
-        const res = await axios.get('/api/admin/users');
-        setUsers(res.data || []);
-      } catch (e) {
-        console.error('Failed to fetch users for reassign', e);
-        setUsers([]);
-      }
-      setUsersLoading(false);
-    }
-    setUserSearch('');
-  };
-
-  const performReassign = async (userId) => {
-    if (!reassignModal) return;
-    setActionLoading(true);
+  const reassignUpload = async (uploadId, newUserId) => {
     try {
-      await axios.patch(`/api/admin/support/uploads/${reassignModal.id}/reassign`, { userId: userId || null });
+      await fetch(`/api/admin/support/uploads/${uploadId}/reassign`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ userId: newUserId })
+      });
+      fetchUploads();
       setReassignModal(null);
-      await fetchUploads();
-    } catch (e) {
-      alert('Reassign failed');
+    } catch (error) {
+      console.error('Error reassigning upload:', error);
     }
-    setActionLoading(false);
   };
 
-  const openPreview = (u) => {
-    setPreview({ url: u.url, name: u.originalName || u.filename });
+  const searchUsers = async (query) => {
+    if (!query) return;
+    try {
+      const response = await fetch(`/api/admin/users/search?q=${query}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await response.json();
+      setUsers(data);
+    } catch (error) {
+      console.error('Error searching users:', error);
+    }
   };
 
-  const filtered = uploads.filter(u => {
-    if (!search) return true;
-    const s = search.toLowerCase();
-    return (u.originalName && u.originalName.toLowerCase().includes(s)) || (u.filename && u.filename.toLowerCase().includes(s)) || String(u.userId || '').toLowerCase().includes(s);
-  });
+  const getFileIcon = (filename) => {
+    const ext = filename.split('.').pop().toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return FiImage;
+    if (['pdf'].includes(ext)) return FiFileText;
+    return FiFile;
+  };
 
-  const filteredUsers = users.filter(u => {
-    if (!userSearch) return true;
-    const s = userSearch.toLowerCase();
-    return (u.name && u.name.toLowerCase().includes(s)) || (u.email && u.email.toLowerCase().includes(s)) || (u.username && u.username.toLowerCase().includes(s));
-  }).slice(0, 50);
+  const filteredUploads = uploads.filter(upload =>
+    upload.originalName.toLowerCase().includes(search.toLowerCase()) ||
+    upload.userId.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const UploadCard = ({ upload }) => {
+    const FileIcon = getFileIcon(upload.originalName);
+    
+    return (
+      <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden hover:border-gold transition-colors">
+        {/* File Preview/Icon */}
+        <div className="aspect-square bg-gray-900 flex items-center justify-center relative">
+          {upload.originalName.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+            <img 
+              src={`/api/uploads/support/${upload.filename}`} 
+              alt={upload.originalName}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <FileIcon className="w-12 h-12 text-gray-400" />
+          )}
+          <div className="absolute top-2 right-2">
+            <span className="bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
+              {upload.originalName.split('.').pop().toUpperCase()}
+            </span>
+          </div>
+        </div>
+
+        {/* File Info */}
+        <div className="p-4 space-y-3">
+          <div>
+            <h3 className="text-white font-medium text-sm truncate" title={upload.originalName}>
+              {upload.originalName}
+            </h3>
+            <div className="flex items-center text-xs text-gray-400 mt-1">
+              <FiUser className="w-3 h-3 mr-1" />
+              <span className="truncate">{upload.userId}</span>
+            </div>
+            <div className="flex items-center text-xs text-gray-400 mt-1">
+              <FiCalendar className="w-3 h-3 mr-1" />
+              <span>{new Date(upload.createdAt).toLocaleDateString()}</span>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-col space-y-2">
+            <button
+              onClick={() => setPreview(upload)}
+              className="w-full px-3 py-2 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors flex items-center justify-center"
+            >
+              <FiEye className="w-3 h-3 mr-1" />
+              Preview
+            </button>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setReassignModal(upload)}
+                className="flex-1 px-3 py-2 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors flex items-center justify-center"
+              >
+                <FiUserCheck className="w-3 h-3 mr-1" />
+                Reassign
+              </button>
+              <button
+                onClick={() => setDeleteConfirm(upload)}
+                className="flex-1 px-3 py-2 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors flex items-center justify-center"
+              >
+                <FiTrash2 className="w-3 h-3 mr-1" />
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold">Support Uploads</h2>
-        <div className="flex items-center gap-3">
-          <input
-            className="border rounded-full px-3 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-            placeholder="Search by filename, original name, or userId"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-          <button className="px-4 py-2 bg-gray-200 rounded" onClick={fetchUploads} disabled={loading}>Refresh</button>
+    <div className={`max-w-full ${isMobile ? 'p-4' : 'p-2 sm:p-6'} w-full mx-auto`}>
+      <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+        {/* Header */}
+        <div className="bg-gray-900 px-6 py-4 border-b border-gray-700">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <FiFolder className="w-6 h-6 text-gold" />
+              <h2 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-gold`}>Support Uploads</h2>
+            </div>
+            <button
+              onClick={fetchUploads}
+              className="p-2 bg-gold text-black rounded-lg hover:bg-yellow-400 transition-colors"
+              disabled={loading}
+            >
+              <FiRefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="p-6 border-b border-gray-700">
+          <div className="relative">
+            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              type="text"
+              placeholder="Search by filename or user ID..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 rounded-lg bg-gray-900 text-white border border-gray-600 focus:border-gold outline-none text-sm"
+            />
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <FiRefreshCw className="w-8 h-8 text-gold animate-spin" />
+            </div>
+          ) : filteredUploads.length === 0 ? (
+            <div className="text-center py-12">
+              <FiFolder className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-400 text-lg">No uploads found</p>
+            </div>
+          ) : (
+            <div className={`grid gap-4 ${
+              isMobile 
+                ? 'grid-cols-1 sm:grid-cols-2' 
+                : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+            }`}>
+              {filteredUploads.map(upload => (
+                <UploadCard key={upload._id} upload={upload} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {loading ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="p-3 border rounded animate-pulse bg-gray-100 h-36" />
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-gray-500">No uploads found.</div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {filtered.map(u => (
-            <div key={u._id} className="p-3 border rounded shadow-sm bg-white flex flex-col">
-              <div className="flex items-center gap-3">
-                <button className="w-20 h-20 overflow-hidden rounded" onClick={() => openPreview(u)}>
-                  <img src={u.thumbUrl} alt={u.originalName || u.filename} className="w-full h-full object-cover" onError={(e)=>{e.target.src='/favicon.ico'}} />
-                </button>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold truncate">{u.originalName || u.filename}</div>
-                  <div className="text-xs text-gray-500 truncate">{u.userId || 'unassigned'}</div>
-                  <div className="text-xs text-gray-400 mt-1">{new Date(u.createdAt).toLocaleString()}</div>
-                </div>
-              </div>
-              <div className="mt-3 flex gap-2">
-                <a href={u.url} target="_blank" rel="noopener noreferrer" className="flex-1 text-center px-3 py-1 bg-blue-50 border rounded text-blue-700 hover:bg-blue-100">Open</a>
-                <button className="px-3 py-1 bg-gray-200 rounded flex-1" onClick={()=>openReassignModal(u)} disabled={actionLoading}>Reassign</button>
-                <button className="px-3 py-1 bg-red-500 text-white rounded flex-1" onClick={()=>handleDelete(u._id, u.originalName || u.filename)} disabled={actionLoading}>Delete</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* Preview Modal */}
       {preview && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setPreview(null)}>
-          <div className="bg-white rounded p-4 max-w-3xl w-full" onClick={(e)=>e.stopPropagation()}>
-            <div className="flex items-start justify-between">
-              <h3 className="text-lg font-bold">{preview.name}</h3>
-              <button className="text-gray-600" onClick={()=>setPreview(null)}>Close</button>
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className={`bg-gray-800 rounded-lg border border-gray-700 ${isMobile ? 'w-full max-w-sm' : 'max-w-2xl w-full'} max-h-[90vh] overflow-hidden`}>
+            <div className="flex items-center justify-between p-4 border-b border-gray-700">
+              <h3 className="text-white font-medium truncate">{preview.originalName}</h3>
+              <button
+                onClick={() => setPreview(null)}
+                className="p-1 text-gray-400 hover:text-white"
+              >
+                <FiX className="w-5 h-5" />
+              </button>
             </div>
-            <div className="mt-3">
-              <img src={preview.url} alt={preview.name} className="max-h-[70vh] w-full object-contain" />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete confirm modal */}
-      {confirmDelete && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded p-6 w-full max-w-md">
-            <h3 className="text-lg font-bold mb-2">Confirm delete</h3>
-            <p className="text-sm text-gray-600">Are you sure you want to delete <strong>{confirmDelete.name}</strong>? This will remove the file and its database record.</p>
-            <div className="mt-4 flex justify-end gap-2">
-              <button className="px-4 py-2 rounded border" onClick={()=>setConfirmDelete(null)} disabled={actionLoading}>Cancel</button>
-              <button className="px-4 py-2 bg-red-600 text-white rounded" onClick={confirmDeleteNow} disabled={actionLoading}>{actionLoading ? 'Deleting...' : 'Delete'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Reassign modal with user lookup/autocomplete */}
-      {reassignModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setReassignModal(null)}>
-          <div className="bg-white rounded p-6 w-full max-w-2xl" onClick={(e)=>e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h3 className="text-lg font-bold">Reassign upload</h3>
-                <div className="text-sm text-gray-600">{reassignModal.name}</div>
-              </div>
-              <div>
-                <button className="px-3 py-1 rounded border" onClick={() => performReassign(null)} disabled={actionLoading}>Unassign</button>
-                <button className="ml-2 px-3 py-1 rounded border" onClick={() => setReassignModal(null)} disabled={actionLoading}>Cancel</button>
-              </div>
-            </div>
-
-            <div className="mb-3">
-              <input className="w-full border rounded px-3 py-2" placeholder="Search users by name, email or username" value={userSearch} onChange={e => setUserSearch(e.target.value)} />
-            </div>
-
-            <div className="max-h-96 overflow-y-auto border rounded">
-              {usersLoading ? (
-                <div className="p-4">Loading users...</div>
-              ) : filteredUsers.length === 0 ? (
-                <div className="p-4 text-gray-500">No users found.</div>
+            <div className="p-4 overflow-auto max-h-[70vh]">
+              {preview.originalName.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                <img 
+                  src={`/api/uploads/support/${preview.filename}`} 
+                  alt={preview.originalName}
+                  className="w-full h-auto rounded"
+                />
               ) : (
-                <div>
-                  {filteredUsers.map(u => (
-                    <div key={u._id} className="p-3 flex items-center justify-between hover:bg-gray-50">
-                      <div>
-                        <div className="font-semibold">{u.name || u.username || u.email}</div>
-                        <div className="text-xs text-gray-500">{u.email} • @{u.username}</div>
-                      </div>
-                      <div>
-                        <button className="px-3 py-1 bg-blue-600 text-white rounded" onClick={() => performReassign(u._id)} disabled={actionLoading}>Assign</button>
-                      </div>
-                    </div>
-                  ))}
+                <div className="text-center py-8">
+                  <FiFile className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-400">Preview not available for this file type</p>
+                  <a
+                    href={`/api/uploads/support/${preview.filename}`}
+                    download={preview.originalName}
+                    className="inline-flex items-center mt-4 px-4 py-2 bg-gold text-black rounded hover:bg-yellow-400 transition-colors"
+                  >
+                    <FiDownload className="w-4 h-4 mr-2" />
+                    Download
+                  </a>
                 </div>
               )}
             </div>
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className={`bg-gray-800 rounded-lg border border-gray-700 ${isMobile ? 'w-full max-w-sm' : 'max-w-md w-full'}`}>
+            <div className="p-6">
+              <h3 className="text-white font-medium mb-4">Confirm Delete</h3>
+              <p className="text-gray-300 mb-6">
+                Are you sure you want to delete "{deleteConfirm.originalName}"? This action cannot be undone.
+              </p>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setDeleteConfirm(null)}
+                  className="flex-1 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => deleteUpload(deleteConfirm._id)}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reassign Modal */}
+      {reassignModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className={`bg-gray-800 rounded-lg border border-gray-700 ${isMobile ? 'w-full max-w-sm' : 'max-w-md w-full'}`}>
+            <div className="p-6">
+              <h3 className="text-white font-medium mb-4">Reassign Upload</h3>
+              <p className="text-gray-300 mb-4">
+                Reassigning "{reassignModal.originalName}"
+              </p>
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="Search users by email or username..."
+                  value={userSearch}
+                  onChange={(e) => {
+                    setUserSearch(e.target.value);
+                    searchUsers(e.target.value);
+                  }}
+                  className="w-full px-3 py-2 rounded bg-gray-900 text-white border border-gray-600 focus:border-gold outline-none text-sm"
+                />
+                {users.length > 0 && (
+                  <div className="max-h-40 overflow-y-auto border border-gray-600 rounded">
+                    {users.map(user => (
+                      <button
+                        key={user._id}
+                        onClick={() => reassignUpload(reassignModal._id, user._id)}
+                        className="w-full text-left px-3 py-2 hover:bg-gray-700 text-white text-sm border-b border-gray-600 last:border-b-0"
+                      >
+                        {user.email} ({user.username})
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="flex space-x-3 mt-6">
+                <button
+                  onClick={() => setReassignModal(null)}
+                  className="flex-1 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default SupportUploads;

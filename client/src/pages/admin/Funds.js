@@ -1,6 +1,6 @@
 // src/pages/admin/Funds.js
 import React, { useState, useEffect } from 'react';
-import { FiPlus, FiFilter, FiDownload } from 'react-icons/fi';
+import { FiPlus, FiFilter, FiDownload, FiTrendingUp, FiLoader } from 'react-icons/fi';
 import FundList from '../../components/admin/FundList';
 import FundEditor from '../../components/admin/FundEditor';
 import { getFunds, updateFund, deleteFund } from '../../services/fundAPI';
@@ -12,6 +12,16 @@ const AdminFunds = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     const fetchFunds = async () => {
@@ -48,64 +58,90 @@ const AdminFunds = () => {
   };
 
   if (loading) {
-    return <div className="p-2 sm:p-4 md:p-6">Loading funds...</div>;
+    return (
+      <div className={`${isMobile ? 'p-4' : 'p-6'} flex items-center justify-center min-h-64`}>
+        <div className="flex items-center space-x-3">
+          <FiLoader className="w-6 h-6 animate-spin text-gold" />
+          <span className="text-lg">Loading funds...</span>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-full sm:max-w-6xl mx-auto p-2 sm:p-8 md:p-12 lg:p-16 xl:p-20 2xl:p-24 font-sans text-base text-gray-100 bg-black rounded-xl shadow-lg overflow-x-auto">
+    <div className={`max-w-full ${isMobile ? 'p-4' : 'sm:max-w-6xl p-2 sm:p-6'} w-full mx-auto`}>
       <div className="space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <h1 className="text-2xl font-bold">Fund Management</h1>
+        {/* Header */}
+        <div className={`${isMobile ? 'space-y-4' : 'flex justify-between items-center'}`}>
+          <div className="flex items-center space-x-3">
+            <FiTrendingUp className="w-6 h-6 text-gold" />
+            <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold`}>Fund Management</h1>
+          </div>
           <button
             onClick={() => {
               setSelectedFund(null);
               setIsEditing(true);
             }}
-            className="flex items-center px-4 py-2 bg-gold text-black rounded-lg hover:bg-yellow-600 transition"
+            className={`${isMobile ? 'w-full' : ''} flex items-center justify-center px-4 py-3 bg-gold text-black rounded-lg hover:bg-yellow-400 transition-colors font-semibold text-sm`}
           >
-            <FiPlus className="mr-2" /> New Fund
+            <FiPlus className="mr-2 w-4 h-4" /> New Fund
           </button>
         </div>
 
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-          <div className="relative w-full md:w-64">
+        {/* Search and Filter Controls */}
+        <div className={`${isMobile ? 'space-y-4' : 'flex justify-between items-center gap-4'}`}>
+          <div className="relative flex-1 max-w-md">
             <input
               type="text"
               placeholder="Search funds..."
-              className="w-full pl-4 pr-10 py-2 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold"
+              className="w-full pl-4 pr-10 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-gold text-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <FiFilter className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <FiFilter className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className={`${isMobile ? 'flex flex-col space-y-3' : 'flex items-center space-x-3'}`}>
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="bg-gray-700 rounded-lg px-4 py-2 focus:outline-none"
+              className={`${isMobile ? 'w-full' : ''} bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-gold text-sm`}
             >
               <option value="all">All Statuses</option>
               <option value="active">Active</option>
               <option value="paused">Paused</option>
               <option value="archived">Archived</option>
             </select>
-            <button className="flex items-center px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600">
-              <FiDownload className="mr-2" /> Export
+            <button className={`${isMobile ? 'w-full' : ''} flex items-center justify-center px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-700 transition-colors text-sm`}>
+              <FiDownload className="mr-2 w-4 h-4" /> Export
             </button>
           </div>
         </div>
 
-        <FundList 
-          funds={funds} 
-          onEdit={fund => { setSelectedFund(fund); setIsEditing(true); }}
-          onDelete={handleDeleteFund}
-        />
-        {isEditing && selectedFund && (
+        {/* Fund List */}
+        <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+          <FundList 
+            funds={funds} 
+            onEdit={fund => { setSelectedFund(fund); setIsEditing(true); }}
+            onDelete={handleDeleteFund}
+            isMobile={isMobile}
+            searchTerm={searchTerm}
+            filter={filter}
+          />
+        </div>
+
+        {/* Fund Editor Modal */}
+        {isEditing && (
           <FundEditor 
             fund={selectedFund}
-            onSave={(updates) => { handleUpdateFund(selectedFund._id, updates); setIsEditing(false); }}
+            onSave={(updates) => { 
+              if (selectedFund) {
+                handleUpdateFund(selectedFund._id, updates);
+              }
+              setIsEditing(false); 
+            }}
             onClose={() => setIsEditing(false)}
+            isMobile={isMobile}
           />
         )}
       </div>

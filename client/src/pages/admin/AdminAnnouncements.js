@@ -14,7 +14,19 @@ const AdminAnnouncements = () => {
   const [error, setError] = useState('');
   const [announcements, setAnnouncements] = useState([]);
   const [deletingId, setDeletingId] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
   const quillRef = useRef();
+
+  // Check if mobile screen
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Fetch announcements
   const fetchAnnouncements = async () => {
@@ -73,9 +85,16 @@ const AdminAnnouncements = () => {
     }
   };
 
-  // Add a custom toolbar with image button
+  // Mobile-optimized toolbar for Quill
   const quillModules = {
-    toolbar: [
+    toolbar: isMobile ? [
+      [{ 'header': [1, 2, false] }],
+      ['bold', 'italic'],
+      [{ 'color': [] }],
+      [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+      ['link'],
+      ['clean']
+    ] : [
       [{ 'header': [1, 2, false] }],
       ['bold', 'italic', 'underline', 'strike'],
       [{ 'color': [] }, { 'background': [] }],
@@ -123,62 +142,127 @@ const AdminAnnouncements = () => {
   };
 
   return (
-    <div className="p-2 sm:p-4 md:p-6 max-w-full sm:max-w-3xl mx-auto overflow-x-auto">
-      <h2 className="text-3xl font-bold text-gold mb-6 text-center">Admin Announcements</h2>
+    <div className="p-3 sm:p-4 md:p-6 max-w-full lg:max-w-4xl mx-auto">
+      <h2 className="text-2xl sm:text-3xl font-bold text-gold mb-4 sm:mb-6 text-center px-2">
+        Admin Announcements
+      </h2>
+      
       {/* Post form */}
-      <div className="glassmorphic p-2 sm:p-6 md:p-8 rounded-xl mb-6 sm:mb-10 overflow-x-auto">
-        <h3 className="text-2xl font-bold mb-6 text-center">Post Announcement</h3>
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="glassmorphic p-3 sm:p-6 md:p-8 rounded-xl mb-4 sm:mb-6 md:mb-10">
+        <h3 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-center">
+          Post Announcement
+        </h3>
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           <div>
-            <label className="block mb-1">Title</label>
-            <input type="text" className="w-full p-2 rounded bg-dark border border-gray-700" value={title} onChange={e => setTitle(e.target.value)} required />
-          </div>
-          <div>
-            <label className="block mb-1">Message</label>
-            <ReactQuill 
-              theme="snow" 
-              value={richMessage} 
-              onChange={setRichMessage} 
-              className="bg-dark text-white" 
-              modules={quillModules}
-              ref={quillRef}
+            <label className="block mb-2 text-sm sm:text-base font-medium">Title</label>
+            <input 
+              type="text" 
+              className="w-full p-3 sm:p-4 rounded-lg bg-dark border border-gray-700 text-white focus:border-gold focus:outline-none transition-colors text-sm sm:text-base" 
+              value={title} 
+              onChange={e => setTitle(e.target.value)} 
+              required 
+              placeholder="Enter announcement title..."
             />
-            <label className="block mt-2">Insert Image:</label>
-            <input type="file" accept="image/*" onChange={handleExternalImageUpload} className="mt-1" onClick={e => e.stopPropagation()} />
           </div>
-          <button type="submit" className="w-full py-3 rounded-lg font-bold bg-gold text-black hover:bg-yellow-600 transition" disabled={loading}>
+          
+          <div>
+            <label className="block mb-2 text-sm sm:text-base font-medium">Message</label>
+            <div className="bg-dark rounded-lg overflow-hidden">
+              <ReactQuill 
+                theme="snow" 
+                value={richMessage} 
+                onChange={setRichMessage} 
+                className="bg-dark text-white min-h-[200px] sm:min-h-[250px]" 
+                modules={quillModules}
+                ref={quillRef}
+                placeholder="Write your announcement message..."
+              />
+            </div>
+            
+            {!isMobile && (
+              <div className="mt-3">
+                <label className="block mb-2 text-sm font-medium">Insert Image:</label>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleExternalImageUpload} 
+                  className="w-full p-2 rounded bg-gray-800 border border-gray-700 text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-gold file:text-black file:font-medium hover:file:bg-yellow-600 transition-colors" 
+                  onClick={e => e.stopPropagation()} 
+                />
+              </div>
+            )}
+          </div>
+          
+          <button 
+            type="submit" 
+            className="w-full py-3 sm:py-4 rounded-lg font-bold bg-gold text-black hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base" 
+            disabled={loading}
+          >
             {loading ? 'Posting...' : 'Post Announcement'}
           </button>
-          {success && <div className="text-green-400 text-center mt-2">{success}</div>}
-          {error && <div className="text-red-400 text-center mt-2">{error}</div>}
+          
+          {success && (
+            <div className="text-green-400 text-center mt-3 p-3 bg-green-900/20 rounded-lg text-sm sm:text-base">
+              {success}
+            </div>
+          )}
+          {error && (
+            <div className="text-red-400 text-center mt-3 p-3 bg-red-900/20 rounded-lg text-sm sm:text-base">
+              {error}
+            </div>
+          )}
         </form>
       </div>
+      
       {/* Announcements list */}
-      <div className="space-y-4 sm:space-y-6">
+      <div className="space-y-3 sm:space-y-4 md:space-y-6">
+        <h3 className="text-xl sm:text-2xl font-bold text-center mb-4 text-gold">
+          Published Announcements
+        </h3>
+        
         {announcements.filter(a => a._id).map((a) => (
-          <div key={a._id} className="glassmorphic p-2 sm:p-4 md:p-6 rounded-xl relative overflow-x-auto">
-            <div className="flex items-center mb-2">
-              <FiInfo className="text-gold mr-2" />
-              <span className="font-bold text-lg text-gold">{a.title}</span>
+          <div key={a._id} className="glassmorphic p-3 sm:p-4 md:p-6 rounded-xl relative">
+            <div className="flex items-start justify-between mb-3 gap-3">
+              <div className="flex items-start gap-2 flex-1 min-w-0">
+                <FiInfo className="text-gold mt-1 flex-shrink-0" size={isMobile ? 16 : 20} />
+                <h4 className="font-bold text-base sm:text-lg text-gold break-words">
+                  {a.title}
+                </h4>
+              </div>
+              
               {a._id && (
                 <button
-                  className="ml-auto text-red-400 hover:text-red-600"
+                  className="text-red-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-900/20 transition-colors flex-shrink-0"
                   title="Delete announcement"
                   onClick={() => handleDelete(a._id)}
                   disabled={deletingId === a._id}
                 >
-                  <FiTrash2 />
+                  <FiTrash2 size={isMobile ? 16 : 18} />
                 </button>
               )}
             </div>
-            <div className="text-white mb-2 announcement-message" dangerouslySetInnerHTML={{ __html: a.message }} />
-            <div className="flex items-center text-gray-400 text-sm">
-              <FiClock className="mr-1" />
-              {a.date ? (new Date(a.date)).toLocaleString() : ''}
+            
+            <div 
+              className="text-white mb-3 announcement-message prose prose-invert max-w-none text-sm sm:text-base leading-relaxed" 
+              dangerouslySetInnerHTML={{ __html: a.message }} 
+            />
+            
+            <div className="flex items-center text-gray-400 text-xs sm:text-sm">
+              <FiClock className="mr-2 flex-shrink-0" size={isMobile ? 12 : 14} />
+              <span className="break-words">
+                {a.date ? (new Date(a.date)).toLocaleString() : ''}
+              </span>
             </div>
           </div>
         ))}
-        {announcements.filter(a => a._id).length === 0 && <div className="text-center text-gray-400">No announcements yet.</div>}
+        
+        {announcements.filter(a => a._id).length === 0 && (
+          <div className="text-center text-gray-400 py-8 sm:py-12">
+            <FiInfo className="mx-auto mb-3 text-3xl sm:text-4xl" />
+            <p className="text-sm sm:text-base">No announcements yet.</p>
+            <p className="text-xs sm:text-sm mt-1">Create your first announcement above.</p>
+          </div>
+        )}
       </div>
     </div>
   );
