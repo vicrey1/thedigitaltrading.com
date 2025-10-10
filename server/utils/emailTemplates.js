@@ -271,7 +271,7 @@ class EmailTemplateBuilder {
         </p>
         <p class="content-text" style="margin-top: 30px;">
             Sincerely,<br>
-            <strong style="color: ${accentColor};">Client Services Team</strong>
+            <strong style="color: #ffffff;">Client Services Team</strong>
         </p>
     `;
 
@@ -318,7 +318,7 @@ class EmailTemplateBuilder {
         </p>
         <p class="content-text" style="margin-top: 30px;">
             Sincerely,<br>
-            <strong style="color: ${accentColor};">Compliance Department</strong>
+            <strong style="color: #ffffff;">Compliance Department</strong>
         </p>
     `;
 
@@ -346,7 +346,7 @@ class EmailTemplateBuilder {
         ` : ''}
         <p class="content-text" style="margin-top: 30px;">
             Sincerely,<br>
-            <strong style="color: ${accentColor};">Digital Trading Platform</strong>
+            <strong style="color: #ffffff;">Digital Trading Platform</strong>
         </p>
     `;
 
@@ -379,7 +379,7 @@ class EmailTemplateBuilder {
         </div>
         <p class="content-text" style="margin-top: 30px;">
             Sincerely,<br>
-            <strong style="color: ${accentColor};">Digital Trading Platform</strong>
+            <strong style="color: #ffffff;">Digital Trading Platform</strong>
         </p>
     `;
 
