@@ -56,3 +56,5 @@ services:
         value: wss://api.thedigitaltrading.com
       - key: REACT_APP_FRONTEND_URL
         value: https://www.thedigitaltrading.com
+      - key: REACT_APP_ENABLE_ADMIN_CARS
+        value: true
