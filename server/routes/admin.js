@@ -121,7 +121,38 @@ router.delete('/market-events/:id', authAdmin, async (req, res) => {
 router.get('/users', authAdmin, async (req, res) => {
   try {
     const users = await User.find();
-    res.json(users);
+    
+    // Import balance calculator
+    const { calculateAvailableBalance } = require('../utils/balanceCalculator');
+    
+    // Calculate proper available balance for each user
+    const usersWithCalculatedBalances = await Promise.all(
+      users.map(async (user) => {
+        try {
+          const balanceData = await calculateAvailableBalance(user._id);
+          return {
+            ...user.toObject(),
+            availableBalance: balanceData.calculatedAvailableBalance,
+            // Include breakdown for debugging if needed
+            _balanceBreakdown: {
+              depositBalance: balanceData.depositBalance,
+              totalInvested: balanceData.totalInvested,
+              totalConfirmedRoi: balanceData.totalConfirmedRoi,
+              netAdminAdjustments: balanceData.netAdminAdjustments
+            }
+          };
+        } catch (error) {
+          console.error(`Error calculating balance for user ${user._id}:`, error);
+          return {
+            ...user.toObject(),
+            availableBalance: 0,
+            _balanceError: error.message
+          };
+        }
+      })
+    );
+    
+    res.json(usersWithCalculatedBalances);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

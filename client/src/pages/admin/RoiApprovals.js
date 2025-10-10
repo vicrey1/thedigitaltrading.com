@@ -25,7 +25,7 @@ const RoiApprovals = () => {
   const fetchRoiWithdrawals = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('/api/admin/roi-withdrawals', {
+      const res = await axios.get('/api/admin/roi-approvals', {
         headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
       });
       setRoiWithdrawals(res.data);
@@ -38,7 +38,7 @@ const RoiApprovals = () => {
 
   const handleApprove = async (id) => {
     try {
-      await axios.post(`/api/admin/roi-withdrawals/${id}/approve`, {}, {
+      await axios.patch(`/api/admin/roi-approvals/${id}`, { status: 'approved' }, {
         headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
       });
       fetchRoiWithdrawals();
@@ -49,7 +49,7 @@ const RoiApprovals = () => {
 
   const handleReject = async (id) => {
     try {
-      await axios.post(`/api/admin/roi-withdrawals/${id}/reject`, {}, {
+      await axios.patch(`/api/admin/roi-approvals/${id}`, { status: 'rejected' }, {
         headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
       });
       fetchRoiWithdrawals();
