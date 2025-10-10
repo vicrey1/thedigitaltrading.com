@@ -1,7 +1,7 @@
 // src/components/admin/AdminLayout.js
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link } from 'react-router-dom';
-import { FiUsers, FiDollarSign, FiDownload, FiSettings, FiHome, FiBell, FiChevronLeft, FiChevronRight, FiMenu, FiX, FiCreditCard, FiLayers, FiPieChart, FiMail, FiShield } from 'react-icons/fi';
+import { FiUsers, FiDollarSign, FiDownload, FiSettings, FiHome, FiBell, FiChevronLeft, FiChevronRight, FiMenu, FiX, FiCreditCard, FiLayers, FiPieChart, FiMail, FiShield, FiLogOut } from 'react-icons/fi';
 import { useAdminAuth } from '../../auth/AdminAuthProvider';
 
 const AdminLayout = () => {
@@ -97,13 +97,13 @@ const AdminLayout = () => {
           border-r shadow-lg z-40 
           transform transition-all duration-300 ease-in-out
           ${sidebarOpen ? 'translate-x-0' : (isMobile ? '-translate-x-full' : 'translate-x-0')}
-          overflow-hidden
+          flex flex-col
         `}
       >
-        <div className={`flex items-center h-16 md:h-20 px-4 border-b ${darkMode ? 'border-gray-800' : 'border-gray-200'}`}>
+        <div className={`flex-shrink-0 flex items-center h-16 md:h-20 px-4 border-b ${darkMode ? 'border-gray-800' : 'border-gray-200'}`}>
           {sidebarOpen && (
             <span className={`text-xl md:text-2xl font-extrabold tracking-widest ${darkMode ? 'text-gold' : 'text-yellow-700'} transition-all duration-300`}>
-              LUXHEDGE
+              TDT
             </span>
           )}
           {!isMobile && (
@@ -117,7 +117,7 @@ const AdminLayout = () => {
           )}
         </div>
 
-        <nav className={`flex-1 py-4 md:py-8 ${sidebarOpen ? 'px-4' : 'px-2'} space-y-1 md:space-y-2 overflow-y-auto`}>
+        <nav className={`flex-1 py-4 md:py-8 ${sidebarOpen ? 'px-4' : 'px-2'} space-y-1 md:space-y-2 overflow-y-auto min-h-0`}>
           <Link 
             to="/admin" 
             className={`flex items-center px-3 md:px-4 py-3 md:py-3 rounded-lg transition-all hover:bg-gray-800 text-gray-200 hover:text-gold font-medium min-h-[48px] ${!sidebarOpen && !isMobile ? 'justify-center' : ''}`}
@@ -248,7 +248,7 @@ const AdminLayout = () => {
         </nav>
 
         {/* Admin Profile Section */}
-        <div className={`px-4 py-4 md:py-6 border-t ${darkMode ? 'border-gray-800' : 'border-gray-200'} ${!sidebarOpen && !isMobile ? 'flex justify-center' : ''}`}>
+        <div className={`flex-shrink-0 px-4 py-4 md:py-6 border-t ${darkMode ? 'border-gray-800' : 'border-gray-200'} ${!sidebarOpen && !isMobile ? 'flex justify-center' : ''}`}>
           <div className={`flex items-center ${!sidebarOpen && !isMobile ? 'flex-col' : ''}`}>
             <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full ${darkMode ? 'bg-gray-700 text-gold' : 'bg-gray-200 text-yellow-700'} flex items-center justify-center text-lg font-bold ${!sidebarOpen && !isMobile ? 'mb-2' : 'mr-3'}`}>
               {admin?.name?.charAt(0) || 'A'}
@@ -264,6 +264,17 @@ const AdminLayout = () => {
                   Logout
                 </button>
               </div>
+            )}
+            {/* Logout button for collapsed sidebar */}
+            {!sidebarOpen && !isMobile && (
+              <button 
+                onClick={logout}
+                className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-colors mt-2"
+                title="Logout"
+                aria-label="Logout"
+              >
+                <FiLogOut className="text-lg md:text-xl" />
+              </button>
             )}
           </div>
         </div>
