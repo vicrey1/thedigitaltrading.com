@@ -22,7 +22,7 @@ class EmailTemplateBuilder {
       preheader = '',
       backgroundColor = '#0f0f0f',
       containerColor = '#18181b',
-      accentColor = '#FFD700'
+      accentColor = '#000000'
     } = options;
 
     return `
@@ -82,7 +82,7 @@ class EmailTemplateBuilder {
             
             /* Header styles */
             .email-header {
-                background: linear-gradient(135deg, ${accentColor} 0%, #FFA500 100%);
+                background: #000000;
                 padding: 40px 20px;
                 text-align: center;
                 position: relative;
@@ -93,11 +93,11 @@ class EmailTemplateBuilder {
             }
             
             .logo {
-                width: 80px;
-                height: 80px;
+                width: 120px;
+                height: 120px;
                 border-radius: 8px;
                 background: #000000;
-                padding: 15px;
+                padding: 20px;
                 border: 2px solid #333333;
                 font-weight: bold;
             }
@@ -136,21 +136,23 @@ class EmailTemplateBuilder {
             .email-button {
                 display: inline-block;
                 padding: 15px 30px;
-                background: linear-gradient(135deg, ${accentColor} 0%, #FFA500 100%);
-                color: #000 !important;
+                background: #000000;
+                color: #ffffff !important;
                 text-decoration: none;
                 border-radius: 8px;
                 font-weight: bold;
                 font-size: 16px;
                 text-align: center;
                 margin: 20px 0;
-                box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+                border: 2px solid #333333;
                 transition: all 0.3s ease;
             }
             
             .email-button:hover {
                 transform: translateY(-2px);
-                box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+                background: #333333;
             }
             
             /* Footer styles */
@@ -206,9 +208,9 @@ class EmailTemplateBuilder {
                 }
                 
                 .logo {
-                    width: 60px;
-                    height: 60px;
-                    padding: 10px;
+                    width: 90px;
+                    height: 90px;
+                    padding: 15px;
                     border-radius: 6px;
                     background: #000000;
                     border: 2px solid #333333;
