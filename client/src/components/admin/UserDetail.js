@@ -194,7 +194,7 @@ const UserDetail = ({ user, onClose, onUpdate, isMobile = false }) => {
 
           {/* Modal Content */}
           <div className={`${isMobile ? 'flex-1 min-h-0 overflow-y-auto' : 'max-h-[calc(90vh-200px)] overflow-y-auto'} p-4 sm:p-6`}>
-            
+            <>
             {/* Overview Tab */}
             {activeTab === 'overview' && (
               <div className={`space-y-6 ${isMobile ? 'pb-8' : ''}`}>
@@ -514,7 +514,8 @@ const UserDetail = ({ user, onClose, onUpdate, isMobile = false }) => {
                             <FiEye className="text-white opacity-0 group-hover:opacity-100 transition-opacity" size={24} />
                           </div>
                         </div>
-                      )}
+                      </div>
+                    )}
                     {user.kyc?.selfieUrl && (
                       <div className="space-y-3">
                         <label className="block text-sm font-medium text-gray-400">Selfie</label>
@@ -529,7 +530,8 @@ const UserDetail = ({ user, onClose, onUpdate, isMobile = false }) => {
                             <FiEye className="text-white opacity-0 group-hover:opacity-100 transition-opacity" size={24} />
                           </div>
                         </div>
-                      )}
+                      </div>
+                    )}
                     {!(user.kyc?.idUrl || user.kyc?.selfieUrl) && (
                       <div className="col-span-full text-center py-12">
                         <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -581,6 +583,7 @@ const UserDetail = ({ user, onClose, onUpdate, isMobile = false }) => {
                 </div>
               </div>
             )}
+            </>
           </div>
         </div>
       </div>
