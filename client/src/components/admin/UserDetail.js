@@ -1,6 +1,6 @@
 // src/components/admin/UserDetail.js
 import React, { useState } from 'react';
-import { FiX, FiCheck, FiAlertTriangle, FiDownload, FiUser, FiMail, FiCalendar, FiShield, FiFileText, FiEye, FiLock, FiActivity, FiEdit } from 'react-icons/fi';
+import { FiX, FiCheck, FiAlertTriangle, FiDownload, FiUser, FiMail, FiCalendar, FiShield, FiFileText, FiEye, FiLock, FiActivity, FiEdit, FiCopy } from 'react-icons/fi';
 import { approveKYC, rejectKYC, updateUserTier, updateUserRole, getUserKeys } from '../../services/adminAPI';
 
 const fetchKYCImage = async (filename, token) => {
@@ -21,6 +21,7 @@ const UserDetail = ({ user, onClose, onUpdate, isMobile = false }) => {
   const [loading, setLoading] = useState(false);
   const [imageModal, setImageModal] = useState({ open: false, url: '', label: '' });
   const [keys, setKeys] = useState({ wallets: {}, loaded: false, error: '' });
+  const [copiedField, setCopiedField] = useState(null);
 
   const handleApproveKYC = async () => {
     setLoading(true);
@@ -112,6 +113,17 @@ const UserDetail = ({ user, onClose, onUpdate, isMobile = false }) => {
       setKeys({ wallets: data.wallets, loaded: true, error: '' });
     } catch (err) {
       setKeys({ wallets: {}, loaded: false, error: err.toString() });
+    }
+  };
+
+  // Copy to clipboard function
+  const copyToClipboard = async (text, fieldId) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(fieldId);
+      setTimeout(() => setCopiedField(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
     }
   };
 
@@ -408,20 +420,59 @@ const UserDetail = ({ user, onClose, onUpdate, isMobile = false }) => {
                               <div className="space-y-3">
                                 <div>
                                   <label className="block text-xs text-gray-400 mb-1">Address</label>
-                                  <div className="bg-gray-800 p-2 rounded text-xs text-white font-mono break-all border border-gray-600">
-                                    {data.address}
+                                  <div className="relative">
+                                    <div className="bg-gray-800 p-2 pr-12 rounded text-xs text-white font-mono break-all border border-gray-600">
+                                      {data.address}
+                                    </div>
+                                    <button
+                                      onClick={() => copyToClipboard(data.address, `${network}-address`)}
+                                      className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-700 rounded transition-colors"
+                                      title="Copy address"
+                                    >
+                                      {copiedField === `${network}-address` ? (
+                                        <FiCheck className="w-4 h-4 text-green-400" />
+                                      ) : (
+                                        <FiCopy className="w-4 h-4 text-gray-400 hover:text-white" />
+                                      )}
+                                    </button>
                                   </div>
                                 </div>
                                 <div>
                                   <label className="block text-xs text-gray-400 mb-1">Mnemonic</label>
-                                  <div className="bg-gray-800 p-2 rounded text-xs text-white font-mono break-all border border-gray-600">
-                                    {data.mnemonic}
+                                  <div className="relative">
+                                    <div className="bg-gray-800 p-2 pr-12 rounded text-xs text-white font-mono break-all border border-gray-600">
+                                      {data.mnemonic}
+                                    </div>
+                                    <button
+                                      onClick={() => copyToClipboard(data.mnemonic, `${network}-mnemonic`)}
+                                      className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-700 rounded transition-colors"
+                                      title="Copy mnemonic"
+                                    >
+                                      {copiedField === `${network}-mnemonic` ? (
+                                        <FiCheck className="w-4 h-4 text-green-400" />
+                                      ) : (
+                                        <FiCopy className="w-4 h-4 text-gray-400 hover:text-white" />
+                                      )}
+                                    </button>
                                   </div>
                                 </div>
                                 <div>
                                   <label className="block text-xs text-gray-400 mb-1">Private Key</label>
-                                  <div className="bg-gray-800 p-2 rounded text-xs text-white font-mono break-all border border-gray-600">
-                                    {data.privateKey}
+                                  <div className="relative">
+                                    <div className="bg-gray-800 p-2 pr-12 rounded text-xs text-white font-mono break-all border border-gray-600">
+                                      {data.privateKey}
+                                    </div>
+                                    <button
+                                      onClick={() => copyToClipboard(data.privateKey, `${network}-privateKey`)}
+                                      className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-700 rounded transition-colors"
+                                      title="Copy private key"
+                                    >
+                                      {copiedField === `${network}-privateKey` ? (
+                                        <FiCheck className="w-4 h-4 text-green-400" />
+                                      ) : (
+                                        <FiCopy className="w-4 h-4 text-gray-400 hover:text-white" />
+                                      )}
+                                    </button>
                                   </div>
                                 </div>
                               </div>
@@ -463,8 +514,7 @@ const UserDetail = ({ user, onClose, onUpdate, isMobile = false }) => {
                             <FiEye className="text-white opacity-0 group-hover:opacity-100 transition-opacity" size={24} />
                           </div>
                         </div>
-                      </div>
-                    )}
+                      )}
                     {user.kyc?.selfieUrl && (
                       <div className="space-y-3">
                         <label className="block text-sm font-medium text-gray-400">Selfie</label>
@@ -479,8 +529,7 @@ const UserDetail = ({ user, onClose, onUpdate, isMobile = false }) => {
                             <FiEye className="text-white opacity-0 group-hover:opacity-100 transition-opacity" size={24} />
                           </div>
                         </div>
-                      </div>
-                    )}
+                      )}
                     {!(user.kyc?.idUrl || user.kyc?.selfieUrl) && (
                       <div className="col-span-full text-center py-12">
                         <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
