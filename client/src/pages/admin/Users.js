@@ -70,11 +70,13 @@ const AdminUsers = () => {
 
   if (loading) {
     return (
-      <div className="p-3 sm:p-4 md:p-6 max-w-full sm:max-w-6xl mx-auto">
-        <div className="flex items-center justify-center py-12">
-          <div className="flex items-center space-x-3 text-gray-400">
-            <FiRefreshCw className="w-5 h-5 animate-spin" />
-            <span>Loading users...</span>
+      <div className="min-h-screen bg-black p-2 sm:p-4 md:p-6">
+        <div className="max-w-full sm:max-w-6xl mx-auto">
+          <div className="flex items-center justify-center py-16 sm:py-20">
+            <div className="flex items-center space-x-3 text-gray-400">
+              <FiRefreshCw className="w-5 h-5 sm:w-6 sm:h-6 animate-spin" />
+              <span className="text-sm sm:text-base">Loading users...</span>
+            </div>
           </div>
         </div>
       </div>
@@ -82,19 +84,36 @@ const AdminUsers = () => {
   }
 
   return (
-    <div className={`max-w-full ${isMobile ? 'p-2 sm:p-3' : 'sm:max-w-6xl p-4 md:p-6 lg:p-8'} w-full mx-auto font-sans text-base text-gray-100 bg-black rounded-xl shadow-lg`}>
-      <div className="space-y-3 sm:space-y-4 md:space-y-6">
-        <div className="flex items-center space-x-2 sm:space-x-3 mb-3 sm:mb-4 md:mb-6">
-          <FiUsers className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-gold flex-shrink-0" />
-          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">User Management</h1>
+    <div className="min-h-screen bg-black">
+      <div className="max-w-full sm:max-w-6xl mx-auto p-2 sm:p-4 md:p-6 lg:p-8">
+        <div className="bg-gray-900 rounded-xl shadow-2xl overflow-hidden">
+          {/* Header Section */}
+          <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-4 sm:p-6 md:p-8 border-b border-gray-700">
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              <div className="p-2 sm:p-3 bg-gold bg-opacity-20 rounded-lg">
+                <FiUsers className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-gold" />
+              </div>
+              <div>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
+                  User Management
+                </h1>
+                <p className="text-sm sm:text-base text-gray-400 mt-1">
+                  Manage and monitor user accounts
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Content Section */}
+          <div className="p-4 sm:p-6 md:p-8">
+            <UserTable 
+              users={users} 
+              onSelectUser={setSelectedUser}
+              onUpdateUser={handleAdjustAvailableBalance}
+              isMobile={isMobile}
+            />
+          </div>
         </div>
-        
-        <UserTable 
-          users={users} 
-          onSelectUser={setSelectedUser}
-          onUpdateUser={handleAdjustAvailableBalance}
-          isMobile={isMobile}
-        />
         
         {selectedUser && (
           <UserDetail 

@@ -9,6 +9,17 @@ export default function AdminPlans() {
   const [plans, setPlans] = useState([]);
   const [form, setForm] = useState({ name: '', roi: '', duration: '', min: '', max: '' });
   const [editingId, setEditingId] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     fetchPlans();
@@ -62,53 +73,187 @@ export default function AdminPlans() {
     fetchPlans();
   }
 
-  return (
-    <div className="w-full max-w-5xl mx-auto px-2 md:px-6 py-6 font-sans text-base text-gray-900">
-      <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
-        <h1 className="text-2xl font-bold whitespace-nowrap">Plan Management</h1>
-        <span className="text-sm text-gray-400">Total Plans: {plans.length}</span>
+  const PlanCard = ({ plan, index }) => (
+    <div className="bg-gray-900 rounded-lg p-4 mb-3 border border-gray-700">
+      <div className="flex justify-between items-start mb-3">
+        <h3 className="text-base font-semibold text-white">{plan.name}</h3>
+        <span className="text-xs text-gray-400">#{index + 1}</span>
       </div>
-      <div className="bg-gray-800 rounded-xl p-2 md:p-6 mb-8">
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input name="name" value={form.name} onChange={handleChange} placeholder="Plan Name" className="border p-2 rounded text-base bg-gray-900 text-white" required />
-          <input name="roi" value={form.roi} onChange={handleChange} placeholder="ROI (%)" className="border p-2 rounded text-base bg-gray-900 text-white" required />
-          <input name="duration" value={form.duration} onChange={handleChange} placeholder="Duration (days)" className="border p-2 rounded text-base bg-gray-900 text-white" required />
-          <input name="min" value={form.min} onChange={handleChange} placeholder="Min ($)" className="border p-2 rounded text-base bg-gray-900 text-white" required />
-          <input name="max" value={form.max} onChange={handleChange} placeholder="Max ($)" className="border p-2 rounded text-base bg-gray-900 text-white" required />
-          <div className="flex items-center space-x-2 mt-2">
-            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded font-semibold">{editingId ? 'Update' : 'Add'} Plan</button>
-            {editingId && <button type="button" onClick={() => { setEditingId(null); setForm({ name: '', roi: '', duration: '', min: '', max: '' }); }} className="px-4 py-2 border rounded text-white">Cancel</button>}
+      
+      <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
+        <div>
+          <span className="text-gray-400 block">ROI:</span>
+          <div className="font-semibold text-white">{plan.roi}%</div>
+        </div>
+        <div>
+          <span className="text-gray-400 block">Duration:</span>
+          <div className="font-semibold text-white">{plan.duration} days</div>
+        </div>
+        <div>
+          <span className="text-gray-400 block">Min Amount:</span>
+          <div className="font-semibold text-white">${plan.min}</div>
+        </div>
+        <div>
+          <span className="text-gray-400 block">Max Amount:</span>
+          <div className="font-semibold text-white">${plan.max}</div>
+        </div>
+      </div>
+      
+      <div className="flex gap-2">
+        <button 
+          onClick={() => handleEdit(plan)} 
+          className="flex-1 bg-blue-600 text-white px-3 py-2 rounded font-medium hover:bg-blue-700 transition text-sm"
+        >
+          Edit
+        </button>
+        <button 
+          onClick={() => handleDelete(plan._id)} 
+          className="flex-1 bg-red-600 text-white px-3 py-2 rounded font-medium hover:bg-red-700 transition text-sm"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="w-full max-w-5xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 font-sans text-base text-gray-900">
+      <div className="flex flex-col gap-2 sm:gap-4 mb-4 sm:mb-6 md:flex-row md:items-center md:justify-between">
+        <h1 className="text-xl sm:text-2xl font-bold whitespace-nowrap">Plan Management</h1>
+        <span className="text-xs sm:text-sm text-gray-400">Total Plans: {plans.length}</span>
+      </div>
+      <div className="bg-gray-800 rounded-xl p-3 sm:p-4 md:p-6 mb-6 sm:mb-8">
+        <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-white">
+          {editingId ? 'Edit Plan' : 'Create New Plan'}
+        </h2>
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <input 
+            name="name" 
+            value={form.name} 
+            onChange={handleChange} 
+            placeholder="Plan Name" 
+            className="border border-gray-600 p-3 sm:p-2 rounded text-base sm:text-sm bg-gray-900 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition" 
+            required 
+          />
+          <input 
+            name="roi" 
+            value={form.roi} 
+            onChange={handleChange} 
+            placeholder="ROI (%)" 
+            type="number"
+            className="border border-gray-600 p-3 sm:p-2 rounded text-base sm:text-sm bg-gray-900 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition" 
+            required 
+          />
+          <input 
+            name="duration" 
+            value={form.duration} 
+            onChange={handleChange} 
+            placeholder="Duration (days)" 
+            type="number"
+            className="border border-gray-600 p-3 sm:p-2 rounded text-base sm:text-sm bg-gray-900 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition" 
+            required 
+          />
+          <input 
+            name="min" 
+            value={form.min} 
+            onChange={handleChange} 
+            placeholder="Min ($)" 
+            type="number"
+            className="border border-gray-600 p-3 sm:p-2 rounded text-base sm:text-sm bg-gray-900 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition" 
+            required 
+          />
+          <input 
+            name="max" 
+            value={form.max} 
+            onChange={handleChange} 
+            placeholder="Max ($)" 
+            type="number"
+            className="border border-gray-600 p-3 sm:p-2 rounded text-base sm:text-sm bg-gray-900 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition" 
+            required 
+          />
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2 mt-2 sm:mt-0">
+            <button 
+              type="submit" 
+              className="bg-blue-600 text-white px-4 py-3 sm:py-2 rounded font-semibold hover:bg-blue-700 transition text-base sm:text-sm"
+            >
+              {editingId ? 'Update' : 'Add'} Plan
+            </button>
+            {editingId && (
+              <button 
+                type="button" 
+                onClick={() => { 
+                  setEditingId(null); 
+                  setForm({ name: '', roi: '', duration: '', min: '', max: '' }); 
+                }} 
+                className="px-4 py-3 sm:py-2 border border-gray-600 rounded text-white hover:bg-gray-700 transition text-base sm:text-sm"
+              >
+                Cancel
+              </button>
+            )}
           </div>
         </form>
       </div>
-      <div className="bg-gray-800 rounded-xl p-2 md:p-6">
-        <table className="w-full text-base text-white">
-          <thead>
-            <tr className="bg-gray-900">
-              <th className="p-3 font-bold">Name</th>
-              <th className="p-3 font-bold">ROI (%)</th>
-              <th className="p-3 font-bold">Duration</th>
-              <th className="p-3 font-bold">Min</th>
-              <th className="p-3 font-bold">Max</th>
-              <th className="p-3 font-bold">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+      <div className="bg-gray-800 rounded-xl p-3 sm:p-4 md:p-6">
+        <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-white">
+          Existing Plans ({plans.length})
+        </h3>
+        
+        {plans.length === 0 ? (
+          <div className="text-center py-6 sm:py-8 text-gray-400">
+            <p className="text-sm sm:text-base">No investment plans found.</p>
+            <p className="text-xs sm:text-sm mt-1">Create your first plan using the form above.</p>
+          </div>
+        ) : isMobile ? (
+          // Mobile Card Layout
+          <div className="space-y-3">
             {plans.map((plan, idx) => (
-              <tr key={plan._id} className={idx % 2 === 0 ? 'bg-gray-900' : 'bg-gray-700'}>
-                <td className="p-3 font-semibold">{plan.name}</td>
-                <td className="p-3">{plan.roi}</td>
-                <td className="p-3">{plan.duration}</td>
-                <td className="p-3">{plan.min}</td>
-                <td className="p-3">{plan.max}</td>
-                <td className="p-3">
-                  <button onClick={() => handleEdit(plan)} className="text-blue-400 font-bold mr-4">Edit</button>
-                  <button onClick={() => handleDelete(plan._id)} className="text-red-400 font-bold">Delete</button>
-                </td>
-              </tr>
+              <PlanCard key={plan._id} plan={plan} index={idx} />
             ))}
-          </tbody>
-        </table>
+          </div>
+        ) : (
+          // Desktop Table Layout
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm sm:text-base text-white">
+              <thead>
+                <tr className="bg-gray-900">
+                  <th className="p-2 sm:p-3 font-bold text-left">Name</th>
+                  <th className="p-2 sm:p-3 font-bold text-left">ROI (%)</th>
+                  <th className="p-2 sm:p-3 font-bold text-left">Duration</th>
+                  <th className="p-2 sm:p-3 font-bold text-left">Min</th>
+                  <th className="p-2 sm:p-3 font-bold text-left">Max</th>
+                  <th className="p-2 sm:p-3 font-bold text-left">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {plans.map((plan, idx) => (
+                  <tr key={plan._id} className={idx % 2 === 0 ? 'bg-gray-900' : 'bg-gray-700'}>
+                    <td className="p-2 sm:p-3 font-semibold">{plan.name}</td>
+                    <td className="p-2 sm:p-3">{plan.roi}%</td>
+                    <td className="p-2 sm:p-3">{plan.duration} days</td>
+                    <td className="p-2 sm:p-3">${plan.min}</td>
+                    <td className="p-2 sm:p-3">${plan.max}</td>
+                    <td className="p-2 sm:p-3">
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => handleEdit(plan)} 
+                          className="text-blue-400 font-semibold hover:underline px-2 py-1 rounded hover:bg-blue-600 hover:text-white transition text-xs sm:text-sm"
+                        >
+                          Edit
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(plan._id)} 
+                          className="text-red-400 font-semibold hover:underline px-2 py-1 rounded hover:bg-red-600 hover:text-white transition text-xs sm:text-sm"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
