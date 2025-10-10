@@ -253,10 +253,14 @@ router.post('/kyc/upload', auth, upload.fields([
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Get file paths
-    const idFrontPath = req.files?.idFront?.[0]?.path || '';
-    const idBackPath = req.files?.idBack?.[0]?.path || '';
-    const selfiePath = req.files?.selfie?.[0]?.path || '';
+    // Get file paths and convert to URLs
+    const idFrontFile = req.files?.idFront?.[0];
+    const idBackFile = req.files?.idBack?.[0];
+    const selfieFile = req.files?.selfie?.[0];
+
+    // Convert file paths to URLs
+    const idUrl = idFrontFile ? `/uploads/kyc/${idFrontFile.filename}` : '';
+    const selfieUrl = selfieFile ? `/uploads/kyc/${selfieFile.filename}` : '';
 
     // Get document type and country from body
     const { documentType, country } = req.body;
@@ -267,9 +271,12 @@ router.post('/kyc/upload', auth, upload.fields([
       submittedAt: new Date(),
       country,
       documentType,
-      idFront: idFrontPath,
-      idBack: idBackPath,
-      selfie: selfiePath
+      idUrl: idUrl,
+      selfieUrl: selfieUrl,
+      // Keep the old fields for backward compatibility
+      idFront: idFrontFile?.path || '',
+      idBack: idBackFile?.path || '',
+      selfie: selfieFile?.path || ''
     };
     await user.save();
 

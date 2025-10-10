@@ -1,5 +1,5 @@
 // src/components/admin/UserDetail.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiX, FiCheck, FiAlertTriangle, FiDownload, FiUser, FiMail, FiCalendar, FiShield, FiFileText, FiEye, FiLock, FiActivity, FiEdit, FiCopy } from 'react-icons/fi';
 import { approveKYC, rejectKYC, updateUserTier, updateUserRole, getUserKeys } from '../../services/adminAPI';
 
@@ -22,6 +22,43 @@ const UserDetail = ({ user, onClose, onUpdate, isMobile = false }) => {
   const [imageModal, setImageModal] = useState({ open: false, url: '', label: '' });
   const [keys, setKeys] = useState({ wallets: {}, loaded: false, error: '' });
   const [copiedField, setCopiedField] = useState(null);
+  const [kycImages, setKycImages] = useState({ idUrl: null, selfieUrl: null, loading: true });
+
+  // Load KYC images with authentication
+  useEffect(() => {
+    const loadKycImages = async () => {
+      if (!user.kyc?.idUrl && !user.kyc?.selfieUrl) {
+        setKycImages({ idUrl: null, selfieUrl: null, loading: false });
+        return;
+      }
+
+      const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
+      const images = { idUrl: null, selfieUrl: null, loading: false };
+
+      try {
+        if (user.kyc?.idUrl) {
+          const filename = user.kyc.idUrl.split('/').pop();
+          images.idUrl = await fetchKYCImage(filename, token);
+        }
+        if (user.kyc?.selfieUrl) {
+          const filename = user.kyc.selfieUrl.split('/').pop();
+          images.selfieUrl = await fetchKYCImage(filename, token);
+        }
+      } catch (error) {
+        console.error('Failed to load KYC images:', error);
+      }
+
+      setKycImages(images);
+    };
+
+    loadKycImages();
+
+     // Cleanup function to revoke blob URLs
+     return () => {
+       if (kycImages.idUrl) URL.revokeObjectURL(kycImages.idUrl);
+       if (kycImages.selfieUrl) URL.revokeObjectURL(kycImages.selfieUrl);
+     };
+   }, [user.kyc?.idUrl, user.kyc?.selfieUrl]);
 
   const handleApproveKYC = async () => {
     setLoading(true);
@@ -500,46 +537,58 @@ const UserDetail = ({ user, onClose, onUpdate, isMobile = false }) => {
                     KYC Documents
                   </h3>
                   <div className={`grid ${isMobile ? 'grid-cols-1 gap-6' : 'grid-cols-1 md:grid-cols-2 gap-6'}`}>
-                    {user.kyc?.idUrl && (
-                      <div className="space-y-3">
-                        <label className="block text-sm font-medium text-gray-400">ID Document</label>
-                        <div className="relative group">
-                          <img 
-                            src={user.kyc.idUrl} 
-                            alt="ID Document" 
-                            className="rounded-lg w-full object-cover max-h-64 border border-gray-600 cursor-pointer hover:border-gold transition-colors" 
-                            onClick={() => handleViewKYCImage(user.kyc.idUrl.split('/').pop(), 'ID Document')}
-                          />
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 rounded-lg transition-all duration-200 flex items-center justify-center">
-                            <FiEye className="text-white opacity-0 group-hover:opacity-100 transition-opacity" size={24} />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    {user.kyc?.selfieUrl && (
-                      <div className="space-y-3">
-                        <label className="block text-sm font-medium text-gray-400">Selfie</label>
-                        <div className="relative group">
-                          <img 
-                            src={user.kyc.selfieUrl} 
-                            alt="Selfie" 
-                            className="rounded-lg w-full object-cover max-h-64 border border-gray-600 cursor-pointer hover:border-gold transition-colors" 
-                            onClick={() => handleViewKYCImage(user.kyc.selfieUrl.split('/').pop(), 'Selfie')}
-                          />
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 rounded-lg transition-all duration-200 flex items-center justify-center">
-                            <FiEye className="text-white opacity-0 group-hover:opacity-100 transition-opacity" size={24} />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    {!(user.kyc?.idUrl || user.kyc?.selfieUrl) && (
+                    {kycImages.loading ? (
                       <div className="col-span-full text-center py-12">
-                        <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
                           <FiFileText size={24} className="text-gray-400" />
                         </div>
-                        <h3 className="text-lg font-medium text-gray-300 mb-2">No Documents</h3>
-                        <p className="text-gray-400">No KYC documents have been uploaded yet.</p>
+                        <h3 className="text-lg font-medium text-gray-300 mb-2">Loading Documents...</h3>
+                        <p className="text-gray-400">Please wait while we load the KYC documents.</p>
                       </div>
+                    ) : (
+                      <>
+                        {kycImages.idUrl && (
+                          <div className="space-y-3">
+                            <label className="block text-sm font-medium text-gray-400">ID Document</label>
+                            <div className="relative group">
+                              <img 
+                                src={kycImages.idUrl} 
+                                alt="ID Document" 
+                                className="rounded-lg w-full object-cover max-h-64 border border-gray-600 cursor-pointer hover:border-gold transition-colors" 
+                                onClick={() => handleViewKYCImage(user.kyc.idUrl.split('/').pop(), 'ID Document')}
+                              />
+                              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 rounded-lg transition-all duration-200 flex items-center justify-center">
+                                <FiEye className="text-white opacity-0 group-hover:opacity-100 transition-opacity" size={24} />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {kycImages.selfieUrl && (
+                          <div className="space-y-3">
+                            <label className="block text-sm font-medium text-gray-400">Selfie</label>
+                            <div className="relative group">
+                              <img 
+                                src={kycImages.selfieUrl} 
+                                alt="Selfie" 
+                                className="rounded-lg w-full object-cover max-h-64 border border-gray-600 cursor-pointer hover:border-gold transition-colors" 
+                                onClick={() => handleViewKYCImage(user.kyc.selfieUrl.split('/').pop(), 'Selfie')}
+                              />
+                              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 rounded-lg transition-all duration-200 flex items-center justify-center">
+                                <FiEye className="text-white opacity-0 group-hover:opacity-100 transition-opacity" size={24} />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {!(kycImages.idUrl || kycImages.selfieUrl) && (
+                          <div className="col-span-full text-center py-12">
+                            <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                              <FiFileText size={24} className="text-gray-400" />
+                            </div>
+                            <h3 className="text-lg font-medium text-gray-300 mb-2">No Documents</h3>
+                            <p className="text-gray-400">No KYC documents have been uploaded yet.</p>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
