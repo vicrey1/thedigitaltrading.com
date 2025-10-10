@@ -8,8 +8,9 @@ export class EmailPreviewService {
         .email-container { max-width: 600px; margin: 0 auto; background: #ffffff; }
         .header { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); padding: 40px 20px; text-align: center; }
         .logo { font-size: 2.5rem; font-weight: bold; letter-spacing: 2px; margin-bottom: 10px; }
-        .logo .lux { color: #FFD700; }
-        .logo .hedge { color: #ffffff; }
+        .logo .the { color: #FFD700; }
+        .logo .digital { color: #ffffff; }
+        .logo .trading { color: #FFD700; }
         .tagline { color: #cccccc; font-size: 0.9rem; margin-top: 10px; }
         .content { padding: 40px 30px; }
         .greeting { font-size: 1.1rem; color: #333; margin-bottom: 20px; }
@@ -49,24 +50,22 @@ export class EmailPreviewService {
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Welcome to LuxHedge</title>
-          ${styles}
-        </head>
-        <body>
-          <div class="email-container">
-            <div class="header">
-              <div class="logo">
-                <span class="lux">LUX</span><span class="hedge">HEDGE</span>
-              </div>
-              <div class="tagline">Premium Digital Trading Platform</div>
+          <title>Welcome to THE DIGITAL TRADING</title>
+        ${styles}
+      </head>
+      <body>
+        <div class="email-container">
+          <div class="header">
+            <div class="logo">
+              <span class="the">THE</span> <span class="digital">DIGITAL</span> <span class="trading">TRADING</span>
             </div>
-            
-            <div class="content">
-              <div class="greeting">Welcome to LuxHedge, ${userName}!</div>
-              
-              <div class="message">
-                We're thrilled to have you join our exclusive community of sophisticated traders and investors. 
-                LuxHedge provides you with cutting-edge tools, real-time market insights, and premium trading opportunities.
+            <div class="tagline">Premium Digital Trading Platform</div>
+          </div>
+          <div class="content">
+            <div class="greeting">Welcome to THE DIGITAL TRADING, ${userName}!</div>
+            <div class="message">
+              We're thrilled to have you join our exclusive community of sophisticated traders and investors. 
+              THE DIGITAL TRADING provides you with cutting-edge tools, real-time market insights, and premium trading opportunities.
                 ${customMessage ? `<br><br>${customMessage}` : ''}
               </div>
               
@@ -85,7 +84,7 @@ export class EmailPreviewService {
             
             <div class="footer">
               <div class="footer-text">
-                <strong>LuxHedge Trading Platform</strong><br>
+                <strong>THE DIGITAL TRADING Platform</strong><br>
                 This email was sent to you because you recently created an account.<br>
                 If you have any questions, please contact our support team.
               </div>
@@ -113,7 +112,7 @@ export class EmailPreviewService {
           <div class="email-container">
             <div class="header">
               <div class="logo">
-                <span class="lux">LUX</span><span class="hedge">HEDGE</span>
+                <span class="the">THE</span> <span class="digital">DIGITAL</span> <span class="trading">TRADING</span>
               </div>
               <div class="tagline">Premium Digital Trading Platform</div>
             </div>
@@ -126,7 +125,7 @@ export class EmailPreviewService {
               </div>
               
               <div class="message">
-                Your identity verification has been successfully completed. You now have full access to all LuxHedge 
+                Your identity verification has been successfully completed. You now have full access to all THE DIGITAL TRADING 
                 trading features and can begin executing trades with higher limits.
                 ${customMessage ? `<br><br>${customMessage}` : ''}
               </div>
@@ -146,7 +145,7 @@ export class EmailPreviewService {
             
             <div class="footer">
               <div class="footer-text">
-                <strong>LuxHedge Trading Platform</strong><br>
+                <strong>THE DIGITAL TRADING Platform</strong><br>
                 Your account security and compliance are our top priorities.<br>
                 Thank you for completing the verification process.
               </div>
@@ -185,9 +184,9 @@ export class EmailPreviewService {
         <body>
           <div class="email-container">
             <div class="header">
-              <div class="logo">
-                <span class="lux">LUX</span><span class="hedge">HEDGE</span>
-              </div>
+            <div class="logo">
+              <span class="the">THE</span> <span class="digital">DIGITAL</span> <span class="trading">TRADING</span>
+            </div>
               <div class="tagline">Premium Digital Trading Platform</div>
             </div>
             
@@ -214,8 +213,8 @@ export class EmailPreviewService {
             </div>
             
             <div class="footer">
-              <div class="footer-text">
-                <strong>LuxHedge Trading Platform</strong><br>
+                <div class="footer-text">
+                  <strong>THE DIGITAL TRADING Platform</strong><br>
                 This is an automated notification from your trading account.<br>
                 Please do not reply to this email.
               </div>
@@ -241,9 +240,9 @@ export class EmailPreviewService {
         <body>
           <div class="email-container">
             <div class="header">
-              <div class="logo">
-                <span class="lux">LUX</span><span class="hedge">HEDGE</span>
-              </div>
+            <div class="logo">
+              <span class="the">THE</span> <span class="digital">DIGITAL</span> <span class="trading">TRADING</span>
+            </div>
               <div class="tagline">Premium Digital Trading Platform</div>
             </div>
             
@@ -253,7 +252,7 @@ export class EmailPreviewService {
             
             <div class="footer">
               <div class="footer-text">
-                <strong>LuxHedge Trading Platform</strong><br>
+                <strong>THE DIGITAL TRADING Platform</strong><br>
                 Professional trading solutions for sophisticated investors.
               </div>
             </div>
@@ -276,9 +275,9 @@ export class EmailPreviewService {
         <body>
           <div class="email-container">
             <div class="header">
-              <div class="logo">
-                <span class="lux">LUX</span><span class="hedge">HEDGE</span>
-              </div>
+            <div class="logo">
+              <span class="the">THE</span> <span class="digital">DIGITAL</span> <span class="trading">TRADING</span>
+            </div>
               <div class="tagline">Premium Digital Trading Platform</div>
             </div>
             
@@ -291,7 +290,7 @@ export class EmailPreviewService {
             
             <div class="footer">
               <div class="footer-text">
-                <strong>LuxHedge Trading Platform</strong><br>
+                <strong>THE DIGITAL TRADING Platform</strong><br>
                 This is a preview of how your email will appear to recipients.
               </div>
             </div>
