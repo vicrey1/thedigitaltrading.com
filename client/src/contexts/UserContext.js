@@ -11,6 +11,12 @@ export const UserProvider = ({ children }) => {
   const [isEmailVerified, setIsEmailVerified] = useState(false);
 
   useEffect(() => {
+    // Skip API calls if we're in admin mode (admin routes)
+    const isAdminRoute = window.location.pathname.startsWith('/admin');
+    if (isAdminRoute) {
+      return;
+    }
+
     const token = localStorage.getItem('token');
     if (token) {
       try {
@@ -52,6 +58,9 @@ export const UserProvider = ({ children }) => {
   }, []);
 
   const login = (token) => {
+    // Skip API calls if we're in admin mode (admin routes)
+    const isAdminRoute = window.location.pathname.startsWith('/admin');
+    
     try {
       const decoded = jwtDecode(token);
       // Check if token is expired
@@ -66,6 +75,12 @@ export const UserProvider = ({ children }) => {
       
       localStorage.setItem('token', token);
       setUser(decoded.user);
+      
+      // Skip KYC API call if in admin mode
+      if (isAdminRoute) {
+        return;
+      }
+      
       // Fetch KYC and email verification status after login
       axios.get('/api/auth/kyc/status', {
         headers: { Authorization: `Bearer ${token}` }
