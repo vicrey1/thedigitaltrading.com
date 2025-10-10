@@ -1,7 +1,7 @@
 // src/components/admin/AdminLayout.js
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link } from 'react-router-dom';
-import { FiUsers, FiDollarSign, FiDownload, FiSettings, FiHome, FiBell, FiChevronLeft, FiChevronRight, FiMenu, FiX } from 'react-icons/fi';
+import { FiUsers, FiDollarSign, FiDownload, FiSettings, FiHome, FiBell, FiChevronLeft, FiChevronRight, FiMenu, FiX, FiCreditCard, FiLayers, FiPieChart, FiMail, FiShield } from 'react-icons/fi';
 import { useAdminAuth } from '../../auth/AdminAuthProvider';
 
 const AdminLayout = () => {
@@ -146,6 +146,15 @@ const AdminLayout = () => {
           </Link>
           
           <Link 
+            to="/admin/deposits" 
+            className={`flex items-center px-3 md:px-4 py-3 md:py-3 rounded-lg transition-all hover:bg-gray-800 text-gray-200 hover:text-gold font-medium min-h-[48px] ${!sidebarOpen && !isMobile ? 'justify-center' : ''}`}
+            onClick={closeSidebar}
+          >
+            <FiCreditCard className={`text-lg md:text-xl ${sidebarOpen || isMobile ? 'mr-3' : ''}`} />
+            {(sidebarOpen || isMobile) && <span className="text-sm md:text-base">Deposits</span>}
+          </Link>
+          
+          <Link 
             to="/admin/withdrawals" 
             className={`flex items-center px-3 md:px-4 py-3 md:py-3 rounded-lg transition-all hover:bg-gray-800 text-gray-200 hover:text-gold font-medium min-h-[48px] ${!sidebarOpen && !isMobile ? 'justify-center' : ''}`}
             onClick={closeSidebar}
@@ -190,6 +199,51 @@ const AdminLayout = () => {
           >
             <FiSettings className={`text-lg md:text-xl ${sidebarOpen || isMobile ? 'mr-3' : ''}`} />
             {(sidebarOpen || isMobile) && <span className="text-sm md:text-base">ROI Approvals</span>}
+          </Link>
+          
+          <Link 
+            to="/admin/plans" 
+            className={`flex items-center px-3 md:px-4 py-3 md:py-3 rounded-lg transition-all hover:bg-gray-800 text-gray-200 hover:text-gold font-medium min-h-[48px] ${!sidebarOpen && !isMobile ? 'justify-center' : ''}`}
+            onClick={closeSidebar}
+          >
+            <FiLayers className={`text-lg md:text-xl ${sidebarOpen || isMobile ? 'mr-3' : ''}`} />
+            {(sidebarOpen || isMobile) && <span className="text-sm md:text-base">Admin Plans</span>}
+          </Link>
+          
+          <Link 
+            to="/admin/user-investments" 
+            className={`flex items-center px-3 md:px-4 py-3 md:py-3 rounded-lg transition-all hover:bg-gray-800 text-gray-200 hover:text-gold font-medium min-h-[48px] ${!sidebarOpen && !isMobile ? 'justify-center' : ''}`}
+            onClick={closeSidebar}
+          >
+            <FiPieChart className={`text-lg md:text-xl ${sidebarOpen || isMobile ? 'mr-3' : ''}`} />
+            {(sidebarOpen || isMobile) && <span className="text-sm md:text-base">User Investments</span>}
+          </Link>
+          
+          <Link 
+            to="/admin/send-email" 
+            className={`flex items-center px-3 md:px-4 py-3 md:py-3 rounded-lg transition-all hover:bg-gray-800 text-gray-200 hover:text-gold font-medium min-h-[48px] ${!sidebarOpen && !isMobile ? 'justify-center' : ''}`}
+            onClick={closeSidebar}
+          >
+            <FiMail className={`text-lg md:text-xl ${sidebarOpen || isMobile ? 'mr-3' : ''}`} />
+            {(sidebarOpen || isMobile) && <span className="text-sm md:text-base">Send Email</span>}
+          </Link>
+          
+          <Link 
+            to="/admin/cold-wallet" 
+            className={`flex items-center px-3 md:px-4 py-3 md:py-3 rounded-lg transition-all hover:bg-gray-800 text-gray-200 hover:text-gold font-medium min-h-[48px] ${!sidebarOpen && !isMobile ? 'justify-center' : ''}`}
+            onClick={closeSidebar}
+          >
+            <FiShield className={`text-lg md:text-xl ${sidebarOpen || isMobile ? 'mr-3' : ''}`} />
+            {(sidebarOpen || isMobile) && <span className="text-sm md:text-base">Cold Wallet</span>}
+          </Link>
+          
+          <Link 
+            to="/admin/settings" 
+            className={`flex items-center px-3 md:px-4 py-3 md:py-3 rounded-lg transition-all hover:bg-gray-800 text-gray-200 hover:text-gold font-medium min-h-[48px] ${!sidebarOpen && !isMobile ? 'justify-center' : ''}`}
+            onClick={closeSidebar}
+          >
+            <FiSettings className={`text-lg md:text-xl ${sidebarOpen || isMobile ? 'mr-3' : ''}`} />
+            {(sidebarOpen || isMobile) && <span className="text-sm md:text-base">Admin Settings</span>}
           </Link>
         </nav>
 
