@@ -151,4 +151,76 @@ export const continueCompletedInvestment = async (userId) => {
   }
 };
 
+// Car Management API calls
+export const getCars = async (params = {}) => {
+  try {
+    const response = await API.get('/cars', { params });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to fetch cars';
+  }
+};
+
+export const getCarById = async (carId) => {
+  try {
+    const response = await API.get(`/cars/${carId}`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to fetch car';
+  }
+};
+
+export const createCar = async (carData) => {
+  try {
+    const response = await API.post('/cars', carData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to create car';
+  }
+};
+
+export const updateCar = async (carId, carData) => {
+  try {
+    const response = await API.put(`/cars/${carId}`, carData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to update car';
+  }
+};
+
+export const deleteCar = async (carId) => {
+  try {
+    const response = await API.delete(`/cars/${carId}`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to delete car';
+  }
+};
+
+export const toggleCarFeatured = async (carId) => {
+  try {
+    const response = await API.patch(`/cars/${carId}/featured`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to toggle car featured status';
+  }
+};
+
+export const getCarStats = async () => {
+  try {
+    const response = await API.get('/cars/stats');
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to fetch car statistics';
+  }
+};
+
 // Add more admin API calls as needed

@@ -1,7 +1,7 @@
 // src/components/admin/AdminLayout.js
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link } from 'react-router-dom';
-import { FiUsers, FiDollarSign, FiDownload, FiSettings, FiHome, FiBell, FiChevronLeft, FiChevronRight, FiMenu, FiX, FiCreditCard, FiLayers, FiPieChart, FiMail, FiShield, FiLogOut } from 'react-icons/fi';
+import { FiUsers, FiDollarSign, FiDownload, FiSettings, FiHome, FiBell, FiChevronLeft, FiChevronRight, FiMenu, FiX, FiCreditCard, FiLayers, FiPieChart, FiMail, FiShield, FiLogOut, FiTruck } from 'react-icons/fi';
 import { useAdminAuth } from '../../auth/AdminAuthProvider';
 
 const AdminLayout = () => {
@@ -111,6 +111,15 @@ const AdminLayout = () => {
           >
             <FiUsers className={`text-lg md:text-xl ${sidebarOpen || isMobile ? 'mr-3' : ''}`} />
             {(sidebarOpen || isMobile) && <span className="text-sm md:text-base">Users</span>}
+          </Link>
+          
+          <Link 
+            to="/admin/cars" 
+            className={`flex items-center px-3 md:px-4 py-3 md:py-3 rounded-lg transition-all hover:bg-gray-800 text-gray-200 hover:text-gold font-medium min-h-[48px] ${!sidebarOpen && !isMobile ? 'justify-center' : ''}`}
+            onClick={closeSidebar}
+          >
+            <FiTruck className={`text-lg md:text-xl ${sidebarOpen || isMobile ? 'mr-3' : ''}`} />
+            {(sidebarOpen || isMobile) && <span className="text-sm md:text-base">Car Shop</span>}
           </Link>
           
 

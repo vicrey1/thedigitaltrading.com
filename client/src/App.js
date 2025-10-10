@@ -27,6 +27,7 @@ import AdminIndex from './pages/admin';
 import AdminMirror from './pages/admin/AdminMirror';
 import RoiApprovals from './pages/admin/RoiApprovals';
 import AdminColdWallet from './pages/admin/AdminColdWallet';
+import AdminCars from './pages/admin/AdminCars';
 
 // Client imports
 import Dashboard from './pages/Dashboard';
@@ -47,6 +48,7 @@ import UserLogin from './pages/UserLogin';
 import FundPerformance from './pages/FundPerformance';
 import MyGoals from './pages/MyGoals';
 import Settings from './pages/Settings';
+import CarShop from './pages/CarShop';
 import DashboardLayout from './components/DashboardLayout';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
@@ -105,6 +107,7 @@ function App() {
                     <Route path="roi-approvals" element={<RoiApprovals />} />
                     {/* <Route path="market-updates" element={<AdminMarketUpdates />} /> */}
                     <Route path="cold-wallet" element={<AdminColdWallet />} />
+                    <Route path="cars" element={<AdminCars />} />
                   </Route>
 
                   {/* Client Routes */}
@@ -127,6 +130,7 @@ function App() {
                     <Route path="fund-prospectus" element={<FundProspectus />} />
                     <Route path="statements" element={<Statements />} />
                     <Route path="invite-friends" element={<InviteFriends />} />
+                    <Route path="cars" element={<CarShop />} />
                   </Route>
                   <Route path="/register" element={<Register />} />
                   <Route path="/login" element={<UserLogin />} />

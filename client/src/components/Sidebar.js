@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FiHome, FiPieChart, FiDollarSign, FiUpload, 
          FiFileText, FiShield, FiBell, 
-         FiTarget, FiBook, FiSettings, FiMenu, FiX, FiUsers } from 'react-icons/fi';
+         FiTarget, FiBook, FiSettings, FiMenu, FiX, FiUsers, FiTruck } from 'react-icons/fi';
 import { useUser } from '../contexts/UserContext';
 import '../custom-scrollbar.css';
 
@@ -20,6 +20,7 @@ const Sidebar = ({ collapsed = false, setCollapsed = () => {}, hasNewAnnouncemen
     { icon: <FiFileText />, label: 'Fund Performance', path: '/dashboard/performance' },
     { icon: <FiShield />, label: 'KYC Status', path: '/dashboard/kyc' },
     { icon: <FiUsers />, label: 'Invite Friends', path: '/dashboard/invite-friends' },
+    { icon: <FiTruck />, label: 'Car Shop', path: '/dashboard/cars' },
     { icon: (
         <span className="relative">
           <FiBell />
