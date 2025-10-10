@@ -102,14 +102,7 @@ class EmailTemplateBuilder {
                 font-weight: bold;
             }
             
-            .brand-name {
-                font-size: 28px;
-                font-weight: bold;
-                color: #ffffff;
-                letter-spacing: 2px;
-                margin: 0;
-                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-            }
+
             
             /* Content styles */
             .email-content {
@@ -191,9 +184,7 @@ class EmailTemplateBuilder {
                     padding: 30px 15px;
                 }
                 
-                .brand-name {
-                    font-size: 24px;
-                }
+
                 
                 .email-content {
                     padding: 30px 20px;
@@ -229,7 +220,6 @@ class EmailTemplateBuilder {
                     <div class="logo-container">
                         <img src="${this.logoUrl}" alt="${this.brandName} Logo" class="logo">
                     </div>
-                    <h1 class="brand-name">${this.brandName}</h1>
                 </div>
                 
                 <!-- Content -->
@@ -239,13 +229,13 @@ class EmailTemplateBuilder {
                 
                 <!-- Footer -->
                 <div class="email-footer">
-                    <p class="footer-text">© ${new Date().getFullYear()} ${this.brandName}. All rights reserved.</p>
+                    <p class="footer-text">© ${new Date().getFullYear()} Digital Trading Platform. All rights reserved.</p>
                     <div class="footer-links">
-                        <a href="${this.baseUrl}" class="footer-link">Visit Website</a>
-                        <a href="${this.baseUrl}/support" class="footer-link">Support</a>
+                        <a href="${this.baseUrl}" class="footer-link">Trading Platform</a>
+                        <a href="${this.baseUrl}/support" class="footer-link">Client Services</a>
                         <a href="${this.baseUrl}/privacy" class="footer-link">Privacy Policy</a>
                     </div>
-                    <p class="footer-text">Professional cryptocurrency trading platform</p>
+                    <p class="footer-text">Institutional-grade cryptocurrency trading solutions</p>
                 </div>
             </div>
         </div>
@@ -256,82 +246,85 @@ class EmailTemplateBuilder {
   /**
    * Welcome email template
    */
-  getWelcomeTemplate(userName = 'Valued User', customMessage = '') {
+  getWelcomeTemplate(userName = 'Valued Client', customMessage = '') {
     const content = `
-        <h2 class="content-title">Welcome to THE DIGITAL TRADING!</h2>
+        <h2 class="content-title">Welcome to Our Trading Platform</h2>
         <p class="content-text">Dear ${userName},</p>
         <p class="content-text">
-            We're thrilled to welcome you to THE DIGITAL TRADING, your premier destination for 
-            professional cryptocurrency trading and investment opportunities.
+            Thank you for joining our institutional-grade cryptocurrency trading platform. 
+            We are committed to providing you with sophisticated trading tools and comprehensive 
+            market access to support your investment objectives.
         </p>
         ${customMessage ? `<p class="content-text">${customMessage}</p>` : ''}
         <p class="content-text">
-            Our platform offers cutting-edge tools, real-time market analysis, and secure trading 
-            infrastructure to help you achieve your financial goals.
+            Our platform features advanced analytics, institutional-level security protocols, 
+            and direct market access to ensure optimal execution of your trading strategies.
         </p>
         <div style="text-align: center; margin: 30px 0;">
             <a href="${this.baseUrl}/dashboard" class="email-button">
-                Get Started Now
+                Access Trading Platform
             </a>
         </div>
         <p class="content-text">
-            If you have any questions, our support team is here to help you 24/7.
+            Our dedicated client services team is available to assist you with any inquiries 
+            regarding platform functionality or market conditions.
         </p>
         <p class="content-text" style="margin-top: 30px;">
-            Best regards,<br>
-            <strong style="color: #FFD700;">The THE DIGITAL TRADING Team</strong>
+            Sincerely,<br>
+            <strong style="color: ${accentColor};">Client Services Team</strong>
         </p>
     `;
 
     return this.getBaseTemplate(content, {
-      title: 'Welcome to THE DIGITAL TRADING',
-      preheader: 'Welcome to your new trading journey!'
+      title: 'Welcome to Digital Trading Platform',
+      preheader: 'Your institutional trading account is now active'
     });
   }
 
   /**
    * KYC Approved template
    */
-  getKYCApprovedTemplate(userName = 'Valued User') {
+  getKYCApprovedTemplate(userName = 'Valued Client') {
     const content = `
-        <h2 class="content-title">🎉 KYC Verification Approved!</h2>
+        <h2 class="content-title">Identity Verification Completed</h2>
         <p class="content-text">Dear ${userName},</p>
         <p class="content-text">
-            Congratulations! Your KYC (Know Your Customer) verification has been successfully approved.
+            We are pleased to inform you that your identity verification process has been 
+            successfully completed and your account has been approved for full trading access.
         </p>
-        <div style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); 
-                    padding: 20px; border-radius: 12px; margin: 25px 0; text-align: center;">
-            <h3 style="color: white; margin: 0; font-size: 18px;">✅ Verification Complete</h3>
-            <p style="color: #D1FAE5; margin: 10px 0 0 0; font-size: 14px;">
-                You now have full access to all platform features
+        <div style="background: linear-gradient(135deg, #333333 0%, #000000 100%); 
+                    padding: 20px; border-radius: 12px; margin: 25px 0; text-align: center; border: 1px solid #555555;">
+            <h3 style="color: white; margin: 0; font-size: 18px;">Account Verification Complete</h3>
+            <p style="color: #cccccc; margin: 10px 0 0 0; font-size: 14px;">
+                Full platform access has been granted
             </p>
         </div>
         <p class="content-text">
-            With your verified account, you can now:
+            Your verified account now provides access to:
         </p>
         <ul style="color: #e5e5e5; padding-left: 20px; margin: 20px 0;">
-            <li style="margin: 8px 0;">Make unlimited deposits and withdrawals</li>
-            <li style="margin: 8px 0;">Access premium trading features</li>
-            <li style="margin: 8px 0;">Participate in exclusive investment opportunities</li>
-            <li style="margin: 8px 0;">Receive priority customer support</li>
+            <li style="margin: 8px 0;">Unrestricted deposit and withdrawal capabilities</li>
+            <li style="margin: 8px 0;">Advanced trading tools and order types</li>
+            <li style="margin: 8px 0;">Institutional-grade market access</li>
+            <li style="margin: 8px 0;">Priority client support services</li>
         </ul>
         <div style="text-align: center; margin: 30px 0;">
             <a href="${this.baseUrl}/dashboard" class="email-button">
-                Access Your Account
+                Access Trading Platform
             </a>
         </div>
         <p class="content-text">
-            Thank you for choosing THE DIGITAL TRADING for your cryptocurrency trading needs.
+            We appreciate your business and look forward to supporting your trading activities.
         </p>
         <p class="content-text" style="margin-top: 30px;">
-            Best regards,<br>
-            <strong style="color: #FFD700;">The THE DIGITAL TRADING Team</strong>
+            Sincerely,<br>
+            <strong style="color: ${accentColor};">Compliance Department</strong>
         </p>
     `;
 
     return this.getBaseTemplate(content, {
-      title: 'KYC Verification Approved - THE DIGITAL TRADING',
-      preheader: 'Your KYC verification has been approved!'
+      title: 'Account Verification Complete',
+      preheader: 'Your trading account has been fully verified'
     });
   }
 
@@ -352,13 +345,13 @@ class EmailTemplateBuilder {
             </div>
         ` : ''}
         <p class="content-text" style="margin-top: 30px;">
-            Best regards,<br>
-            <strong style="color: #FFD700;">The THE DIGITAL TRADING Team</strong>
+            Sincerely,<br>
+            <strong style="color: ${accentColor};">Digital Trading Platform</strong>
         </p>
     `;
 
     return this.getBaseTemplate(content, {
-      title: `${title} - THE DIGITAL TRADING`,
+      title: `${title} - Digital Trading Platform`,
       preheader: title
     });
   }
@@ -368,30 +361,30 @@ class EmailTemplateBuilder {
    */
   getNotificationTemplate(title, message, type = 'info') {
     const typeColors = {
-      success: { bg: '#10B981', border: '#059669' },
-      warning: { bg: '#F59E0B', border: '#D97706' },
-      error: { bg: '#EF4444', border: '#DC2626' },
-      info: { bg: '#3B82F6', border: '#2563EB' }
+      success: { bg: '#333333', border: '#555555' },
+      warning: { bg: '#444444', border: '#666666' },
+      error: { bg: '#2a2a2a', border: '#444444' },
+      info: { bg: '#1a1a1a', border: '#333333' }
     };
 
     const colors = typeColors[type] || typeColors.info;
 
     const content = `
         <div style="background: linear-gradient(135deg, ${colors.bg} 0%, ${colors.border} 100%); 
-                    padding: 20px; border-radius: 12px; margin: 0 0 25px 0; text-align: center;">
+                    padding: 20px; border-radius: 12px; margin: 0 0 25px 0; text-align: center; border: 1px solid ${colors.border};">
             <h2 style="color: white; margin: 0; font-size: 22px;">${title}</h2>
         </div>
         <div class="content-text">
             ${message}
         </div>
         <p class="content-text" style="margin-top: 30px;">
-            Best regards,<br>
-            <strong style="color: #FFD700;">The THE DIGITAL TRADING Team</strong>
+            Sincerely,<br>
+            <strong style="color: ${accentColor};">Digital Trading Platform</strong>
         </p>
     `;
 
     return this.getBaseTemplate(content, {
-      title: `${title} - THE DIGITAL TRADING`,
+      title: `${title} - Digital Trading Platform`,
       preheader: title
     });
   }
