@@ -490,18 +490,66 @@ router.get('/users/:id/keys', authAdmin, async (req, res) => {
 
 // Admin: send email to any user
 router.post('/send-email', authAdmin, async (req, res) => {
-  let { to, subject, html, text } = req.body;
-  const logoHtml = '<img src="https://www.thedigitaltrading.com/logo192.png" alt="THE DIGITAL TRADING Logo" style="width:64px;height:64px;margin-bottom:16px;" />';
-  if (html) {
-    html = logoHtml + html;
+  const { to, subject, html, text, template, templateData } = req.body;
+  
+  if (!to || !subject) {
+    return res.status(400).json({ message: 'Missing required fields: to and subject.' });
   }
-  if (!to || !subject || (!html && !text)) {
-    return res.status(400).json({ message: 'Missing required fields: to, subject, and html or text.' });
-  }
+
   try {
-    await require('../utils/mailer').sendMail({ to, subject, html, text });
+    const emailTemplates = require('../utils/emailTemplates');
+    let finalHtml;
+
+    // Use template system for better email design
+    if (template) {
+      switch (template) {
+        case 'welcome':
+          finalHtml = emailTemplates.getWelcomeTemplate(
+            templateData?.userName || 'Valued User',
+            templateData?.customMessage || ''
+          );
+          break;
+        case 'kyc-approved':
+          finalHtml = emailTemplates.getKYCApprovedTemplate(
+            templateData?.userName || 'Valued User'
+          );
+          break;
+        case 'notification':
+          finalHtml = emailTemplates.getNotificationTemplate(
+            templateData?.title || subject,
+            templateData?.message || html || text || '',
+            templateData?.type || 'info'
+          );
+          break;
+        case 'custom':
+        default:
+          finalHtml = emailTemplates.getCustomTemplate(
+            templateData?.title || subject,
+            html || text || '',
+            templateData?.buttonText || '',
+            templateData?.buttonUrl || ''
+          );
+          break;
+      }
+    } else {
+      // Fallback: wrap plain HTML/text in custom template
+      finalHtml = emailTemplates.getCustomTemplate(
+        subject,
+        html || text || '',
+        '',
+        ''
+      );
+    }
+
+    await require('../utils/mailer').sendMail({ 
+      to, 
+      subject, 
+      html: finalHtml 
+    });
+    
     res.json({ message: 'Email sent successfully.' });
   } catch (err) {
+    console.error('Email sending error:', err);
     res.status(500).json({ message: 'Failed to send email.', error: err.message });
   }
 });
