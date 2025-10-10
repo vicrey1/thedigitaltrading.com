@@ -622,7 +622,7 @@ const Dashboard = ({ adminView = false, portfolioData: adminPortfolioData }) => 
               <FiMessageCircle className="h-6 w-6 sm:h-7 sm:w-7" />
               <div className="text-center">
                 <div>Live Chat Support</div>
-                <div className="text-xs font-normal opacity-90">Look for the chat widget in the bottom-right corner</div>
+                <div className="text-xs font-normal opacity-90">Look for the Smartsupp chat widget in the bottom-right corner</div>
               </div>
             </div>
             <button
