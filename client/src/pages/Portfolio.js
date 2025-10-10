@@ -28,13 +28,13 @@ const Portfolio = ({ adminView = false, portfolioData: adminPortfolioData }) => 
   // Dynamically loaded plans
   const [planConfig, setPlanConfig] = useState({});
   const [investmentPlans, setInvestmentPlans] = useState([]);
-  // Conditionally use authentication hooks only when not in admin view
-  const userContext = adminView ? null : useUser();
-  const userDataRefreshContext = adminView ? null : useUserDataRefresh();
-  const kycStatus = userContext?.kycStatus || 'verified';
-  const isEmailVerified = userContext?.isEmailVerified || true;
-  const lastRefresh = userDataRefreshContext?.lastRefresh;
-  const refreshUserData = userDataRefreshContext?.refreshUserData;
+  // Always call hooks but conditionally use their values based on admin view
+  const userContext = useUser();
+  const userDataRefreshContext = useUserDataRefresh();
+  const kycStatus = adminView ? 'verified' : (userContext?.kycStatus || 'verified');
+  const isEmailVerified = adminView ? true : (userContext?.isEmailVerified || true);
+  const lastRefresh = adminView ? null : userDataRefreshContext?.lastRefresh;
+  const refreshUserData = adminView ? null : userDataRefreshContext?.refreshUserData;
   const [portfolioData, setPortfolioData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

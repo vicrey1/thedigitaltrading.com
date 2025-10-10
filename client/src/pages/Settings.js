@@ -11,12 +11,12 @@ import 'react-toastify/dist/ReactToastify.css';
 
 export default function Settings({ adminView = false, userData = null }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  // Conditionally use authentication hooks only when not in admin view
-  const userContext = adminView ? null : useUser();
-  const userDataRefreshContext = adminView ? null : useUserDataRefresh();
-  const user = userContext?.user || userData;
-  const lastRefresh = userDataRefreshContext?.lastRefresh;
-  const refreshUserData = userDataRefreshContext?.refreshUserData;
+  // Always call hooks but conditionally use their values based on admin view
+  const userContext = useUser();
+  const userDataRefreshContext = useUserDataRefresh();
+  const user = adminView ? userData : (userContext?.user || userData);
+  const lastRefresh = adminView ? null : userDataRefreshContext?.lastRefresh;
+  const refreshUserData = adminView ? null : userDataRefreshContext?.refreshUserData;
   const [profile, setProfile] = useState(null);
   const [edit, setEdit] = useState(false);
   const [form, setForm] = useState(null);
