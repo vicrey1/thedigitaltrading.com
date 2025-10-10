@@ -122,49 +122,93 @@ const Dashboard = ({ adminView = false, portfolioData: adminPortfolioData }) => 
 
   // Re-fetch data when lastRefresh changes (after any user action)
   useEffect(() => {
-    const fetchPortfolioData = async () => {
-      try {
-        const response = await axios.get('/api/portfolio', {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`
+    if (!adminView) {
+      const fetchPortfolioData = async () => {
+        try {
+          const response = await axios.get('/api/portfolio', {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`
+            }
+          });
+          // Debug: log full backend response
+          console.log('[DASHBOARD] /api/portfolio response:', response.data);
+          const data = response.data;
+          // Inject performanceData into the active investment
+          let investments = Array.isArray(data.investments) ? [...data.investments] : [];
+          const perf = data.performanceData || [];
+          const activeIdx = investments.findIndex(inv => inv.status === 'active');
+          if (activeIdx !== -1) {
+            investments[activeIdx] = {
+              ...investments[activeIdx],
+              performance: perf
+            };
           }
-        });
-        // Debug: log full backend response
-        console.log('[DASHBOARD] /api/portfolio response:', response.data);
-        const data = response.data;
-        // Inject performanceData into the active investment
-        let investments = Array.isArray(data.investments) ? [...data.investments] : [];
-        const perf = data.performanceData || [];
-        const activeIdx = investments.findIndex(inv => inv.status === 'active');
-        if (activeIdx !== -1) {
-          investments[activeIdx] = {
-            ...investments[activeIdx],
-            performance: perf
-          };
+          setPortfolioData({
+            ...data,
+            investments,
+            performance: perf,
+            allocation: data.allocationData || [],
+            totalValue: data.summary?.totalValue ?? 0,
+            netGainLoss: data.summary?.totalROIPercent ?? 0,
+            availableBalance: data.userInfo?.availableBalance ?? 0
+          });
+        } catch (err) {
+          setPortfolioData(null);
+        } finally {
+          setLoading(false);
         }
-        setPortfolioData({
-          ...data,
-          investments,
-          performance: perf,
-          allocation: data.allocationData || [],
-          totalValue: data.summary?.totalValue ?? 0,
-          netGainLoss: data.summary?.totalROIPercent ?? 0,
-          availableBalance: data.userInfo?.availableBalance ?? 0
-        });
-      } catch (err) {
-        setPortfolioData(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPortfolioData();
-  }, [lastRefresh]);
+      };
+      fetchPortfolioData();
+    }
+  }, [lastRefresh, adminView]);
 
   // Auto-refresh every 60 seconds
   useEffect(() => {
-    const interval = setInterval(() => {
-      // Only refresh if not loading
-      if (!loading) {
+    if (!adminView) {
+      const interval = setInterval(() => {
+        // Only refresh if not loading
+        if (!loading) {
+          (async () => {
+            try {
+              const response = await axios.get('/api/portfolio', {
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+              });
+              // Debug: log full backend response
+              console.log('[DASHBOARD] /api/portfolio response:', response.data);
+              const data = response.data;
+              // Inject performanceData into the active investment
+              let investments = Array.isArray(data.investments) ? [...data.investments] : [];
+              const perf = data.performanceData || [];
+              const activeIdx = investments.findIndex(inv => inv.status === 'active');
+              if (activeIdx !== -1) {
+                investments[activeIdx] = {
+                  ...investments[activeIdx],
+                  performance: perf
+                };
+              }
+              setPortfolioData({
+                ...data,
+                investments,
+                performance: perf,
+                allocation: data.allocationData || [],
+                totalValue: data.summary?.totalValue ?? 0,
+                netGainLoss: data.summary?.totalROIPercent ?? 0,
+                availableBalance: data.userInfo?.availableBalance ?? 0
+              });
+            } catch {}
+          })();
+        }
+      }, 60000); // 60 seconds
+      return () => clearInterval(interval);
+    }
+  }, [loading, adminView]);
+
+  // Auto-refresh every 10 seconds for deposit confirmation
+  useEffect(() => {
+    if (!adminView) {
+      const interval = setInterval(() => {
         (async () => {
           try {
             const response = await axios.get('/api/portfolio', {
@@ -196,48 +240,10 @@ const Dashboard = ({ adminView = false, portfolioData: adminPortfolioData }) => 
             });
           } catch {}
         })();
-      }
-    }, 60000); // 60 seconds
-    return () => clearInterval(interval);
-  }, [loading]);
-
-  // Auto-refresh every 10 seconds for deposit confirmation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      (async () => {
-        try {
-          const response = await axios.get('/api/portfolio', {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`
-            }
-          });
-          // Debug: log full backend response
-          console.log('[DASHBOARD] /api/portfolio response:', response.data);
-          const data = response.data;
-          // Inject performanceData into the active investment
-          let investments = Array.isArray(data.investments) ? [...data.investments] : [];
-          const perf = data.performanceData || [];
-          const activeIdx = investments.findIndex(inv => inv.status === 'active');
-          if (activeIdx !== -1) {
-            investments[activeIdx] = {
-              ...investments[activeIdx],
-              performance: perf
-            };
-          }
-          setPortfolioData({
-            ...data,
-            investments,
-            performance: perf,
-            allocation: data.allocationData || [],
-            totalValue: data.summary?.totalValue ?? 0,
-            netGainLoss: data.summary?.totalROIPercent ?? 0,
-            availableBalance: data.userInfo?.availableBalance ?? 0
-          });
-        } catch {}
-      })();
-    }, 10000); // 10 seconds
-    return () => clearInterval(interval);
-  }, []);
+      }, 10000); // 10 seconds
+      return () => clearInterval(interval);
+    }
+  }, [adminView]);
 
   // Fetch market news automatically from CoinStats API
   useEffect(() => {

@@ -6,7 +6,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { FiCamera, FiUpload, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 
-const KYCPage = () => {
+const KYCPage = ({ adminView = false, userData = null }) => {
   const [step, setStep] = useState(1); // 1: Info, 2: ID, 3: Selfie, 4: Review
   const [country, setCountry] = useState('');
   const [documentType, setDocumentType] = useState('');
@@ -29,6 +29,13 @@ const KYCPage = () => {
   const [rejectionReason, setRejectionReason] = useState('');
 
   useEffect(() => {
+    if (adminView) {
+      // In admin view, use provided userData
+      setKycStatus(userData?.kycStatus || 'pending');
+      setRejectionReason(userData?.kycRejectionReason || '');
+      return;
+    }
+
     const fetchKYC = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -43,7 +50,7 @@ const KYCPage = () => {
       }
     };
     fetchKYC();
-  }, [success]);
+  }, [success, adminView, userData]);
 
   // Preview for ID front file
   useEffect(() => {
@@ -80,6 +87,7 @@ const KYCPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (adminView) return; // Disable submission in admin view
     setError('');
     setSuccess(false);
     if (!country || !documentType || !selfieFile) {
@@ -358,9 +366,14 @@ const KYCPage = () => {
               <div className="mb-2 flex items-center gap-2"><span className="font-semibold text-gray-300">Selfie:</span> {selfiePreview && <img src={selfiePreview} alt="Selfie Preview" className="w-16 h-16 object-cover rounded-full border-2 border-gold" />}</div>
             </div>
             {error && <div className="text-red-400 mb-2">{error}</div>}
+            {adminView && (
+              <div className="text-yellow-400 text-sm mb-4 text-center">
+                KYC submission is disabled in admin view
+              </div>
+            )}
             <div className="flex justify-between">
               <button type="button" className="bg-gray-700 text-gray-200 px-4 py-2 rounded-lg" onClick={() => setStep(3)}>Back</button>
-              <button type="submit" className="bg-gold text-black px-4 py-2 rounded-lg font-bold hover:bg-yellow-500 transition" disabled={loading}>{loading ? 'Submitting...' : 'Submit KYC'}</button>
+              <button type="submit" className="bg-gold text-black px-4 py-2 rounded-lg font-bold hover:bg-yellow-500 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled={loading || adminView}>{loading ? 'Submitting...' : 'Submit KYC'}</button>
             </div>
           </div>
         )}

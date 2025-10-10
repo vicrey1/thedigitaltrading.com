@@ -28,8 +28,13 @@ const Portfolio = ({ adminView = false, portfolioData: adminPortfolioData }) => 
   // Dynamically loaded plans
   const [planConfig, setPlanConfig] = useState({});
   const [investmentPlans, setInvestmentPlans] = useState([]);
-  const { kycStatus, isEmailVerified } = useUser();
-  const { lastRefresh, refreshUserData } = useUserDataRefresh();
+  // Conditionally use authentication hooks only when not in admin view
+  const userContext = adminView ? null : useUser();
+  const userDataRefreshContext = adminView ? null : useUserDataRefresh();
+  const kycStatus = userContext?.kycStatus || 'verified';
+  const isEmailVerified = userContext?.isEmailVerified || true;
+  const lastRefresh = userDataRefreshContext?.lastRefresh;
+  const refreshUserData = userDataRefreshContext?.refreshUserData;
   const [portfolioData, setPortfolioData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -516,10 +521,11 @@ const Portfolio = ({ adminView = false, portfolioData: adminPortfolioData }) => 
                   <div className="mb-1">Duration: <span className="font-bold">{plan.durationDays} days</span></div>
                   <div className="mb-1">Min: <span className="font-bold">${plan.minInvestment}</span></div>
                   <div className="mb-1">Max: <span className="font-bold">${plan.maxInvestment}</span></div>
-                  <button className="mt-2 bg-gold text-black px-4 py-2 rounded-lg font-bold hover:bg-yellow-500 transition" onClick={() => { if (!hasActiveInvestment) { setSelectedPlan(plan); setShowPlanModal(true); }}} disabled={hasActiveInvestment}>
+                  <button className="mt-2 bg-gold text-black px-4 py-2 rounded-lg font-bold hover:bg-yellow-500 transition" onClick={() => { if (!hasActiveInvestment && !adminView) { setSelectedPlan(plan); setShowPlanModal(true); }}} disabled={hasActiveInvestment || adminView}>
                     Start Investment
                   </button>
                   {hasActiveInvestment && <div className="text-xs text-red-400 mt-2">You can only have one active investment at a time.</div>}
+                  {adminView && <div className="text-xs text-gray-400 mt-2">Investment disabled in admin view.</div>}
                 </div>
               ))}
             </div>
@@ -531,7 +537,8 @@ const Portfolio = ({ adminView = false, portfolioData: adminPortfolioData }) => 
                   <div className="mb-1">Duration: <span className="font-bold">{plan.durationDays} days</span></div>
                   <div className="mb-1">Min: <span className="font-bold">${plan.minInvestment}</span></div>
                   <div className="mb-1">Max: <span className="font-bold">${plan.maxInvestment}</span></div>
-                  <button className="mt-2 bg-gold text-black px-4 py-2 rounded-lg font-bold hover:bg-yellow-500 transition" onClick={() => { setSelectedPlan(plan); setShowPlanModal(true); }}>Start Investment</button>
+                  <button className="mt-2 bg-gold text-black px-4 py-2 rounded-lg font-bold hover:bg-yellow-500 transition" onClick={() => { if (!adminView) { setSelectedPlan(plan); setShowPlanModal(true); }}} disabled={adminView}>Start Investment</button>
+                  {adminView && <div className="text-xs text-gray-400 mt-2">Investment disabled in admin view.</div>}
                 </div>
               ))}
             </div>

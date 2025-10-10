@@ -9,10 +9,14 @@ import { useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-export default function Settings() {
+export default function Settings({ adminView = false, userData = null }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const { user } = useUser();
-  const { lastRefresh, refreshUserData } = useUserDataRefresh();
+  // Conditionally use authentication hooks only when not in admin view
+  const userContext = adminView ? null : useUser();
+  const userDataRefreshContext = adminView ? null : useUserDataRefresh();
+  const user = userContext?.user || userData;
+  const lastRefresh = userDataRefreshContext?.lastRefresh;
+  const refreshUserData = userDataRefreshContext?.refreshUserData;
   const [profile, setProfile] = useState(null);
   const [edit, setEdit] = useState(false);
   const [form, setForm] = useState(null);
@@ -67,6 +71,10 @@ export default function Settings() {
 
   // Fetch sessions on mount
   useEffect(() => {
+    if (adminView) {
+      setLoadingSessions(false);
+      return;
+    }
     const fetchSessions = async () => {
       try {
         const res = await axios.get('/api/user/sessions', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
@@ -75,10 +83,11 @@ export default function Settings() {
       setLoadingSessions(false);
     };
     fetchSessions();
-  }, []);
+  }, [adminView]);
 
   // Logout session handler
   const handleLogoutSession = async (idx) => {
+    if (adminView) return; // Disable in admin view
     if (!window.confirm('Logout this session?')) return;
     try {
       await axios.post('/api/user/logout-session', { sessionIndex: idx }, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
@@ -90,10 +99,12 @@ export default function Settings() {
 
   // Account Management handlers
   const handleDeleteAccount = async () => {
+    if (adminView) return; // Disable in admin view
     setShowDeleteModal(true);
   };
 
   const confirmDeleteAccount = async () => {
+    if (adminView) return; // Disable in admin view
     try {
       await axios.delete('/api/user/delete-account', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
       toast.success('Account deleted. You will be logged out.', {
@@ -122,6 +133,15 @@ export default function Settings() {
 
   // Fetch real user profile from backend on mount and when KYC status may change
   useEffect(() => {
+    if (adminView) {
+      // In admin view, use provided userData
+      if (userData) {
+        setProfile(userData);
+        setForm(userData);
+      }
+      setLoadingProfile(false);
+      return;
+    }
     async function fetchProfileAndKYC() {
       try {
         // Fetch user profile
@@ -142,7 +162,7 @@ export default function Settings() {
       }
     }
     fetchProfileAndKYC();
-  }, [lastRefresh]);
+  }, [lastRefresh, adminView, userData]);
 
   const navigate = useNavigate();
 
@@ -161,6 +181,7 @@ export default function Settings() {
 
   // Restore the real handleRequestChangePassword and handleRecoverPassword implementations
   const handleRequestChangePassword = async () => {
+    if (adminView) return; // Disable in admin view
     setChangePassMsg('');
     try {
       const userId = user?.id;
@@ -178,6 +199,7 @@ export default function Settings() {
 
   // Set or update withdrawal PIN
   const handleSetPin = async () => {
+    if (adminView) return; // Disable in admin view
     setPinMsg('');
     setPinError('');
     if (!/^[0-9]{6}$/.test(pin)) {
@@ -195,6 +217,7 @@ export default function Settings() {
 
   // Request PIN reset code
   const requestPinReset = async () => {
+    if (adminView) return; // Disable in admin view
     try {
       const res = await axios.post('/api/auth/request-pin-reset', { email: profile.email });
       return res.data;
@@ -205,6 +228,7 @@ export default function Settings() {
 
   // Reset PIN
   const resetPin = async (code, newPin) => {
+    if (adminView) return; // Disable in admin view
     try {
       const res = await axios.post('/api/auth/reset-pin', { code, newPin });
       return res.data;
@@ -459,6 +483,7 @@ export default function Settings() {
               className="glass-card glassmorphic bg-gold text-black px-3 py-1 rounded flex items-center justify-center mx-auto mt-2 text-sm font-semibold hover:bg-yellow-400 disabled:opacity-60 transition shadow-lg border border-yellow-400"
               style={{ minWidth: '80px', maxWidth: '120px' }}
               onClick={async () => {
+                if (adminView) return; // Disable in admin view
                 setChangePassMsg('Verifying...');
                 try {
                   const userId = user?.id;
@@ -528,6 +553,7 @@ export default function Settings() {
             <button 
               className="glass-card glassmorphic bg-gold text-black px-4 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-yellow-400 disabled:opacity-60 transition shadow-lg border border-yellow-400" 
               onClick={async () => {
+                if (adminView) return; // Disable in admin view
                 setChangePassMsg('Processing...');
                 if (!passwords.current || !passwords.new || !passwords.confirm) {
                   setChangePassMsg('All fields are required.');
