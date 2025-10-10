@@ -95,11 +95,11 @@ class EmailTemplateBuilder {
             .logo {
                 width: 80px;
                 height: 80px;
-                border-radius: 50%;
-                background: rgba(255, 255, 255, 0.1);
+                border-radius: 8px;
+                background: #000000;
                 padding: 15px;
-                backdrop-filter: blur(10px);
-                border: 2px solid rgba(255, 255, 255, 0.2);
+                border: 2px solid #333333;
+                font-weight: bold;
             }
             
             .brand-name {
@@ -209,6 +209,10 @@ class EmailTemplateBuilder {
                     width: 60px;
                     height: 60px;
                     padding: 10px;
+                    border-radius: 6px;
+                    background: #000000;
+                    border: 2px solid #333333;
+                    font-weight: bold;
                 }
             }
         </style>
