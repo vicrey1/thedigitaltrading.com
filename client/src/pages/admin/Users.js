@@ -82,11 +82,11 @@ const AdminUsers = () => {
   }
 
   return (
-    <div className={`max-w-full ${isMobile ? 'p-3' : 'sm:max-w-6xl p-4 md:p-8 lg:p-16 xl:p-20 2xl:p-24'} w-full mx-auto font-sans text-base text-gray-100 bg-black rounded-xl shadow-lg`}>
-      <div className="space-y-4 sm:space-y-6">
-        <div className="flex items-center space-x-3 mb-4 sm:mb-6">
-          <FiUsers className="w-6 h-6 sm:w-7 sm:h-7 text-gold" />
-          <h1 className="text-xl sm:text-2xl font-bold text-white">User Management</h1>
+    <div className={`max-w-full ${isMobile ? 'p-2 sm:p-3' : 'sm:max-w-6xl p-4 md:p-6 lg:p-8'} w-full mx-auto font-sans text-base text-gray-100 bg-black rounded-xl shadow-lg`}>
+      <div className="space-y-3 sm:space-y-4 md:space-y-6">
+        <div className="flex items-center space-x-2 sm:space-x-3 mb-3 sm:mb-4 md:mb-6">
+          <FiUsers className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-gold flex-shrink-0" />
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">User Management</h1>
         </div>
         
         <UserTable 

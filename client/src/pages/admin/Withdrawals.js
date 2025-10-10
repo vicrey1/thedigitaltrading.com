@@ -78,24 +78,24 @@ const AdminWithdrawals = () => {
   }
 
   return (
-    <div className="p-3 sm:p-4 md:p-6 max-w-full lg:max-w-6xl mx-auto min-h-screen">
+    <div className="p-2 sm:p-3 md:p-4 lg:p-6 max-w-full lg:max-w-6xl mx-auto min-h-screen">
       {/* Header */}
-      <div className="flex flex-col gap-3 mb-4 sm:mb-6 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-3">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gold">
+      <div className="flex flex-col gap-2 sm:gap-3 mb-3 sm:mb-4 md:mb-6 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gold">
             Withdrawal Management
           </h1>
           <button
             onClick={refreshWithdrawals}
-            className="p-2 rounded-lg bg-gold/20 hover:bg-gold/30 text-gold transition-colors"
+            className="p-1.5 sm:p-2 rounded-lg bg-gold/20 hover:bg-gold/30 text-gold transition-colors flex-shrink-0"
             disabled={loading}
           >
-            <FiRefreshCw className={loading ? 'animate-spin' : ''} size={18} />
+            <FiRefreshCw className={loading ? 'animate-spin' : ''} size={isMobile ? 16 : 18} />
           </button>
         </div>
         
-        <div className="flex items-center gap-3 text-sm">
-          <FiFilter className="text-gray-400" size={16} />
+        <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+          <FiFilter className="text-gray-400 flex-shrink-0" size={14} />
           <span className="text-gray-400">
             Showing: <span className="text-gold font-medium">
               {withdrawals.filter(w => w.status === 'pending').length}
@@ -105,7 +105,7 @@ const AdminWithdrawals = () => {
       </div>
 
       {/* Main Content */}
-      <div className="glassmorphic rounded-xl p-3 sm:p-4 md:p-6 w-full">
+      <div className="glassmorphic rounded-xl p-2 sm:p-3 md:p-4 lg:p-6 w-full">
         <WithdrawalList 
           withdrawals={withdrawals} 
           filters={filters}
