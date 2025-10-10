@@ -52,6 +52,11 @@ const fs = require('fs');
 
 // JWT decode middleware for admin routes
 router.use((req, res, next) => {
+  // Skip token verification for login route
+  if (req.path === '/auth/login') {
+    return next();
+  }
+
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
     try {
       const token = req.headers.authorization.replace('Bearer ', '');
@@ -60,10 +65,19 @@ router.use((req, res, next) => {
       req.user = decoded;
     } catch (err) {
       console.log('JWT decode error:', err.message); // Debug log
-      // Invalid token, req.user remains undefined
+      // For expired or invalid tokens, return 401 immediately
+      if (err.name === 'TokenExpiredError') {
+        return res.status(401).json({ message: 'Token expired', code: 'TOKEN_EXPIRED' });
+      } else if (err.name === 'JsonWebTokenError') {
+        return res.status(401).json({ message: 'Invalid token', code: 'INVALID_TOKEN' });
+      }
+      // Other JWT errors
+      return res.status(401).json({ message: 'Authentication failed', code: 'AUTH_FAILED' });
     }
   } else {
     console.log('No Authorization header for admin route'); // Debug log
+    // For routes that require authentication, return 401
+    return res.status(401).json({ message: 'No authorization header', code: 'NO_AUTH_HEADER' });
   }
   next();
 });
@@ -327,7 +341,7 @@ router.post('/auth/login', async (req, res) => {
     const token = jwt.sign(
       { id: admin._id, role: 'admin' },
       process.env.JWT_SECRET,
-      { expiresIn: '8h' }
+      { expiresIn: '24h' }
     );
     res.json({
       token,

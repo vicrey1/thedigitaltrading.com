@@ -19,16 +19,34 @@ export const AdminAuthProvider = ({ children }) => {
           setLoading(false);
           return;
         }
+
+        // Check if token is expired before making API call
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          const currentTime = Date.now() / 1000;
+          if (payload.exp < currentTime) {
+            console.log('Admin token expired, removing from storage');
+            localStorage.removeItem('adminToken');
+            setAdmin(null);
+            setLoading(false);
+            return;
+          }
+        } catch (tokenParseError) {
+          console.error('Failed to parse admin token:', tokenParseError);
+          localStorage.removeItem('adminToken');
+          setAdmin(null);
+          setLoading(false);
+          return;
+        }
         
         const adminData = await verifyAdminToken();
         setAdmin(adminData);
       } catch (error) {
         // Improved error logging
         console.error('Admin auth verification failed:', error);
-        // Only remove token if error is specifically an auth error
-        if (error === 'Session verification failed' || (typeof error === 'string' && error.toLowerCase().includes('token'))) {
-          localStorage.removeItem('adminToken');
-        }
+        // Remove token on any authentication error
+        localStorage.removeItem('adminToken');
+        setAdmin(null);
       } finally {
         setLoading(false);
       }

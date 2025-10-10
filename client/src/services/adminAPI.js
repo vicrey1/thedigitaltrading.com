@@ -19,8 +19,18 @@ API.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Don't automatically logout on 401 - let the component handle it
-      console.warn('Admin API: 401 Unauthorized - Token may be expired');
+      const errorCode = error.response?.data?.code;
+      console.warn('Admin API: 401 Unauthorized -', error.response?.data?.message || 'Token may be expired');
+      
+      // Handle specific token expiration errors
+      if (errorCode === 'TOKEN_EXPIRED' || errorCode === 'INVALID_TOKEN' || errorCode === 'AUTH_FAILED') {
+        console.log('Removing expired/invalid admin token');
+        localStorage.removeItem('adminToken');
+        // Redirect to admin login if not already there
+        if (!window.location.pathname.includes('/admin/login')) {
+          window.location.href = '/admin/login';
+        }
+      }
     }
     return Promise.reject(error);
   }
