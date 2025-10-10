@@ -15,6 +15,17 @@ export const UserProvider = ({ children }) => {
     if (token) {
       try {
         const decoded = jwtDecode(token);
+        // Check if token is expired
+        const currentTime = Date.now() / 1000;
+        if (decoded.exp < currentTime) {
+          // Token is expired, clear it
+          localStorage.removeItem('token');
+          setUser(null);
+          setKycStatus('pending');
+          setIsEmailVerified(false);
+          return;
+        }
+        
         setUser(decoded.user);
         // Fetch KYC and email verification status from backend
         axios.get('/api/auth/kyc/status', {
@@ -27,6 +38,8 @@ export const UserProvider = ({ children }) => {
           setIsEmailVerified(false);
         });
       } catch {
+        // Invalid token, clear it
+        localStorage.removeItem('token');
         setUser(null);
         setKycStatus('pending');
         setIsEmailVerified(false);
@@ -39,19 +52,36 @@ export const UserProvider = ({ children }) => {
   }, []);
 
   const login = (token) => {
-    localStorage.setItem('token', token);
-    const decoded = jwtDecode(token);
-    setUser(decoded.user);
-    // Fetch KYC and email verification status after login
-    axios.get('/api/auth/kyc/status', {
-      headers: { Authorization: `Bearer ${token}` }
-    }).then(res => {
-      setKycStatus(res.data.kyc.status || 'pending');
-      setIsEmailVerified(res.data.isEmailVerified || false);
-    }).catch(() => {
+    try {
+      const decoded = jwtDecode(token);
+      // Check if token is expired
+      const currentTime = Date.now() / 1000;
+      if (decoded.exp < currentTime) {
+        // Token is expired, don't store it
+        setUser(null);
+        setKycStatus('pending');
+        setIsEmailVerified(false);
+        return;
+      }
+      
+      localStorage.setItem('token', token);
+      setUser(decoded.user);
+      // Fetch KYC and email verification status after login
+      axios.get('/api/auth/kyc/status', {
+        headers: { Authorization: `Bearer ${token}` }
+      }).then(res => {
+        setKycStatus(res.data.kyc.status || 'pending');
+        setIsEmailVerified(res.data.isEmailVerified || false);
+      }).catch(() => {
+        setKycStatus('pending');
+        setIsEmailVerified(false);
+      });
+    } catch {
+      // Invalid token
+      setUser(null);
       setKycStatus('pending');
       setIsEmailVerified(false);
-    });
+    }
   };
 
   const logout = () => {
