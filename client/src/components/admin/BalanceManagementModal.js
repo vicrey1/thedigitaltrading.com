@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { FiX } from 'react-icons/fi';
 
 const BalanceManagementModal = ({ user, onClose, onUpdate }) => {
@@ -45,42 +45,42 @@ const BalanceManagementModal = ({ user, onClose, onUpdate }) => {
   };
 
   return (
-    <div className="bg-gray-700 rounded-lg p-6 w-full max-w-md relative">
+    <div className="bg-gray-700 rounded-lg p-4 sm:p-6 w-full max-w-md mx-auto relative">
       <button 
         onClick={onClose}
-        className="absolute right-4 top-4 text-gray-400 hover:text-white"
+        className="absolute right-3 sm:right-4 top-3 sm:top-4 text-gray-400 hover:text-white p-2 rounded-full hover:bg-gray-600 transition-colors"
       >
-        <FiX size={24} />
+        <FiX size={20} className="sm:w-6 sm:h-6" />
       </button>
       
-      <h2 className="text-xl font-semibold mb-4">Manage Balance: {user.name}</h2>
-      <div className="bg-gray-800 p-4 rounded-lg mb-6">
-        <p className="text-sm text-gray-300">Available Balance:</p>
-        <p className="text-2xl font-semibold text-gold">
+      <h2 className="text-lg sm:text-xl font-semibold mb-4 pr-10 sm:pr-12">
+        Manage Balance: <span className="text-gold">{user.name}</span>
+      </h2>
+      
+      <div className="bg-gray-800 p-3 sm:p-4 rounded-lg mb-4 sm:mb-6">
+        <p className="text-xs sm:text-sm text-gray-300 mb-1">Available Balance:</p>
+        <p className="text-xl sm:text-2xl font-semibold text-gold">
           ${Number(user.availableBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </p>
-        {error && (
-          <p className="mt-2 text-sm text-red-400">{error}</p>
-        )}
       </div>
 
       {error && (
-        <div className="bg-red-500 bg-opacity-10 text-red-400 px-4 py-2 rounded-lg mb-4">
+        <div className="bg-red-500 bg-opacity-10 text-red-400 px-3 sm:px-4 py-2 rounded-lg mb-4 text-sm">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
         {success && (
-          <div className="bg-green-500 bg-opacity-10 text-green-400 px-4 py-2 rounded-lg">
+          <div className="bg-green-500 bg-opacity-10 text-green-400 px-3 sm:px-4 py-2 rounded-lg text-sm">
             Balance updated successfully!
           </div>
         )}
         
         <div>
-          <label className="block text-sm font-medium mb-2">Operation</label>
-          <div className="flex gap-4">
-            <label className="flex items-center">
+          <label className="block text-sm font-medium mb-3">Operation</label>
+          <div className="grid grid-cols-2 gap-2 sm:gap-4">
+            <label className="flex items-center justify-center p-3 sm:p-4 border border-gray-600 rounded-lg cursor-pointer hover:bg-gray-800 transition-colors">
               <input
                 type="radio"
                 name="operation"
@@ -88,11 +88,11 @@ const BalanceManagementModal = ({ user, onClose, onUpdate }) => {
                 checked={operation === 'add'}
                 onChange={(e) => setOperation(e.target.value)}
                 disabled={loading}
-                className="mr-2"
+                className="mr-2 text-green-500 focus:ring-green-500"
               />
-              Add Funds
+              <span className="text-sm sm:text-base">Add Funds</span>
             </label>
-            <label className="flex items-center">
+            <label className="flex items-center justify-center p-3 sm:p-4 border border-gray-600 rounded-lg cursor-pointer hover:bg-gray-800 transition-colors">
               <input
                 type="radio"
                 name="operation"
@@ -100,9 +100,9 @@ const BalanceManagementModal = ({ user, onClose, onUpdate }) => {
                 checked={operation === 'subtract'}
                 onChange={(e) => setOperation(e.target.value)}
                 disabled={loading}
-                className="mr-2"
+                className="mr-2 text-red-500 focus:ring-red-500"
               />
-              Subtract Funds
+              <span className="text-sm sm:text-base">Subtract Funds</span>
             </label>
           </div>
         </div>
@@ -110,14 +110,14 @@ const BalanceManagementModal = ({ user, onClose, onUpdate }) => {
         <div>
           <label className="block text-sm font-medium mb-2">Amount</label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">$</span>
+            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg">$</span>
             <input
               type="number"
               min="0"
               step="0.01"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-full pl-8 pr-4 py-2 bg-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold"
+              className="w-full pl-8 pr-4 py-3 sm:py-2 bg-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold text-base sm:text-sm border border-gray-600"
               placeholder="0.00"
               required
               disabled={loading}
@@ -127,7 +127,7 @@ const BalanceManagementModal = ({ user, onClose, onUpdate }) => {
 
         <button
           type="submit"
-          className={`w-full px-4 py-2 rounded-lg transition-colors ${
+          className={`w-full px-4 py-3 sm:py-2 rounded-lg transition-colors font-medium text-base sm:text-sm ${
             loading 
               ? 'bg-gray-600 cursor-not-allowed'
               : operation === 'add'
