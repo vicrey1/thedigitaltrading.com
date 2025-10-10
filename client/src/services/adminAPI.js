@@ -14,6 +14,18 @@ API.interceptors.request.use((config) => {
   return config;
 });
 
+// Add response interceptor to handle auth errors
+API.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Don't automatically logout on 401 - let the component handle it
+      console.warn('Admin API: 401 Unauthorized - Token may be expired');
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const getUsers = async () => {
   try {
     const response = await API.get('/users');
@@ -80,6 +92,52 @@ export const sendAdminEmail = async ({ to, subject, html }) => {
     await API.post('/send-email', { to, subject, html });
   } catch (error) {
     throw error.response?.data?.message || error.message || 'Failed to send email';
+  }
+};
+
+// Mirror user API functions
+export const getUserPortfolio = async (userId) => {
+  try {
+    const response = await API.get(`/users/${userId}/portfolio`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to fetch user portfolio';
+  }
+};
+
+export const getUserProfile = async (userId) => {
+  try {
+    const response = await API.get(`/users/${userId}/profile`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to fetch user profile';
+  }
+};
+
+export const getUserKYC = async (userId) => {
+  try {
+    const response = await API.get(`/users/${userId}/kyc`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to fetch user KYC';
+  }
+};
+
+export const completeActiveInvestment = async (userId) => {
+  try {
+    const response = await API.post(`/users/${userId}/complete-active-investment`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to complete active investment';
+  }
+};
+
+export const continueCompletedInvestment = async (userId) => {
+  try {
+    const response = await API.post(`/users/${userId}/continue-completed-investment`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to continue completed investment';
   }
 };
 

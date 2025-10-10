@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import Portfolio from '../../pages/Portfolio';
 import Dashboard from '../../pages/Dashboard';
 import Settings from '../../pages/Settings';
 import KYCPage from '../../pages/KYCPage';
-import { getUserKeys } from '../../services/adminAPI';
+import { 
+  getUserKeys, 
+  getUserPortfolio, 
+  getUserProfile, 
+  getUserKYC,
+  completeActiveInvestment,
+  continueCompletedInvestment
+} from '../../services/adminAPI';
 import { FiArrowLeft, FiUser, FiPieChart, FiSettings, FiFileText, FiInfo, FiEye, FiEyeOff, FiCopy, FiCheck, FiX } from 'react-icons/fi';
 
 const AdminMirrorUser = ({ userId, onBack, isMobile }) => {
@@ -21,15 +27,16 @@ const AdminMirrorUser = ({ userId, onBack, isMobile }) => {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [portfolioRes, profileRes, kycRes] = await Promise.all([
-          axios.get(`/api/admin/users/${userId}/portfolio`, { headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` } }),
-          axios.get(`/api/admin/users/${userId}/profile`, { headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` } }),
-          axios.get(`/api/admin/users/${userId}/kyc`, { headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` } })
+        const [portfolioData, profileData, kycData] = await Promise.all([
+          getUserPortfolio(userId),
+          getUserProfile(userId),
+          getUserKYC(userId)
         ]);
-        setPortfolioData(portfolioRes.data);
-        setProfile(profileRes.data);
-        setKyc(kycRes.data);
+        setPortfolioData(portfolioData);
+        setProfile(profileData);
+        setKyc(kycData);
       } catch (err) {
+        console.error('Error fetching user data:', err);
         setPortfolioData(null);
         setProfile(null);
         setKyc(null);
@@ -50,12 +57,10 @@ const AdminMirrorUser = ({ userId, onBack, isMobile }) => {
   const handleCompleteActiveInvestment = async () => {
     if (!userId) return;
     try {
-      await axios.post(`/api/admin/users/${userId}/complete-active-investment`, {}, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
-      });
+      await completeActiveInvestment(userId);
       // Refresh portfolio data after completion
-      const portfolioRes = await axios.get(`/api/admin/users/${userId}/portfolio`, { headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` } });
-      setPortfolioData(portfolioRes.data);
+      const portfolioData = await getUserPortfolio(userId);
+      setPortfolioData(portfolioData);
       alert('Active investment completed successfully.');
     } catch (err) {
       alert('Failed to complete active investment: ' + (err.response?.data?.error || err.message));
@@ -66,12 +71,10 @@ const AdminMirrorUser = ({ userId, onBack, isMobile }) => {
   const handleContinueCompletedInvestment = async () => {
     if (!userId) return;
     try {
-      await axios.post(`/api/admin/users/${userId}/continue-completed-investment`, {}, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
-      });
+      await continueCompletedInvestment(userId);
       // Refresh portfolio data after continuation
-      const portfolioRes = await axios.get(`/api/admin/users/${userId}/portfolio`, { headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` } });
-      setPortfolioData(portfolioRes.data);
+      const portfolioData = await getUserPortfolio(userId);
+      setPortfolioData(portfolioData);
       alert('Investment continued successfully.');
     } catch (err) {
       alert('Failed to continue investment: ' + (err.response?.data?.error || err.message));
