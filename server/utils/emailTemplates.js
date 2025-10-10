@@ -20,9 +20,9 @@ class EmailTemplateBuilder {
     const {
       title = 'THE DIGITAL TRADING',
       preheader = '',
-      backgroundColor = '#0f0f0f',
-      containerColor = '#18181b',
-      accentColor = '#000000'
+      backgroundColor = '#000000',
+      containerColor = '#000000',
+      accentColor = '#ffffff'
     } = options;
 
     return `
@@ -105,10 +105,10 @@ class EmailTemplateBuilder {
             .brand-name {
                 font-size: 28px;
                 font-weight: bold;
-                color: #000;
+                color: #ffffff;
                 letter-spacing: 2px;
                 margin: 0;
-                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
             }
             
             /* Content styles */
@@ -157,7 +157,7 @@ class EmailTemplateBuilder {
             
             /* Footer styles */
             .email-footer {
-                background-color: #111111;
+                background-color: #000000;
                 padding: 30px 20px;
                 text-align: center;
                 border-top: 1px solid #333;
