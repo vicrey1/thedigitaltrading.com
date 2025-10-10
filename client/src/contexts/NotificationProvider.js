@@ -13,16 +13,15 @@ export default function NotificationProvider({ children }) {
   useEffect(() => {
     if (!socket) return;
     const handler = (data) => {
-      // Only show notification if not on support chat page
-      if (!location.pathname.includes('/dashboard/support')) {
-        toast.info(
-          <div>
-            <strong>{data.title}</strong>
-            <div>{data.message}</div>
-            <button
-              style={{ marginTop: 8, color: '#007bff', background: 'none', border: 'none', cursor: 'pointer' }}
-              onClick={() => {
-                navigate('/dashboard/support');
+      // Show notification for all pages since Smartsupp handles chat globally
+      toast.info(
+        <div>
+          <strong>{data.title}</strong>
+          <div>{data.message}</div>
+          <button
+            style={{ marginTop: 8, color: '#007bff', background: 'none', border: 'none', cursor: 'pointer' }}
+            onClick={() => {
+              // Smartsupp chat widget will handle support interactions
                 toast.dismiss();
               }}
             >
@@ -38,7 +37,6 @@ export default function NotificationProvider({ children }) {
             hideProgressBar: false,
           }
         );
-      }
     };
     socket.on('supportNotification', handler);
     return () => socket.off('supportNotification', handler);

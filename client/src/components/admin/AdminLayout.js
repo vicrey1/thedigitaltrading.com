@@ -163,14 +163,16 @@ const AdminLayout = () => {
             {(sidebarOpen || isMobile) && <span className="text-sm md:text-base">Announcements</span>}
           </Link>
           
-          <Link 
-            to="/admin/support" 
+          <a 
+            href="https://www.smartsupp.com/app/" 
+            target="_blank"
+            rel="noopener noreferrer"
             className={`flex items-center px-3 md:px-4 py-3 md:py-3 rounded-lg transition-all hover:bg-gray-800 text-gray-200 hover:text-gold font-medium min-h-[48px] ${!sidebarOpen && !isMobile ? 'justify-center' : ''}`}
             onClick={closeSidebar}
           >
             <FiBell className={`text-lg md:text-xl ${sidebarOpen || isMobile ? 'mr-3' : ''}`} />
-            {(sidebarOpen || isMobile) && <span className="text-sm md:text-base">Support Chat</span>}
-          </Link>
+            {(sidebarOpen || isMobile) && <span className="text-sm md:text-base">Live Chat (Smartsupp)</span>}
+          </a>
           
           <Link 
             to="/admin/mirror" 

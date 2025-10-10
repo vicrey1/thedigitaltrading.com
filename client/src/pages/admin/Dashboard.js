@@ -129,22 +129,24 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Support Chat Panel */}
+        {/* Live Chat Support Panel */}
         <div className="bg-gradient-to-r from-yellow-900 to-yellow-800 rounded-xl p-4 md:p-6 border border-yellow-600 shadow-lg">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div className="mb-4 sm:mb-0">
               <h2 className="text-lg md:text-xl font-bold mb-2 text-yellow-100 flex items-center gap-2">
                 <FiMessageCircle className="text-yellow-300" />
-                Support Chat 
-                <span className="text-sm md:text-base font-normal text-yellow-300">(Admin)</span>
+                Live Chat Support 
+                <span className="text-sm md:text-base font-normal text-yellow-300">(Smartsupp)</span>
               </h2>
-              <p className="text-sm md:text-base text-yellow-200">View and reply to user support messages in real time.</p>
+              <p className="text-sm md:text-base text-yellow-200">Manage customer conversations through Smartsupp dashboard.</p>
             </div>
             <a 
-              href="/admin/support" 
+              href="https://www.smartsupp.com/app/" 
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center justify-center bg-yellow-400 text-yellow-900 font-bold px-4 md:px-6 py-2 md:py-3 rounded-lg shadow hover:bg-yellow-300 transition-all text-sm md:text-base min-w-[140px] whitespace-nowrap"
             >
-              Go to Support Chat
+              Open Smartsupp
             </a>
           </div>
         </div>

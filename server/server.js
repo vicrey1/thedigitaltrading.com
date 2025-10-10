@@ -112,28 +112,9 @@ app.use('/uploads/announcements', express.static(__dirname + '/uploads/announcem
 app.use('/api', require('./routes/announcementUploads'));
 app.use('/api/performance', require('./routes/performance')); // Add performance metrics API route
 app.use('/api/news', require('./routes/news')); // Add news API route
-const supportChat = require('./routes/supportChat');
-app.use('/api/support', supportChat(io));
 app.use('/api/investment', require('./routes/investment'));
 app.use('/api/ai-chat', require('./routes/aiChat'));
 app.use('/api/withdrawal', require('./routes/withdrawal'));
-
-// Serve support uploads statically
-app.use('/uploads/support', express.static(__dirname + '/uploads/support'));
-
-// Logging middleware for support uploads
-app.use('/uploads/support/:filename', (req, res, next) => {
-  const filePath = require('path').join(__dirname, 'uploads', 'support', req.params.filename);
-  const fs = require('fs');
-  fs.access(filePath, fs.constants.F_OK, (err) => {
-    if (err) {
-      console.error(`[UPLOADS LOG] File not found: ${filePath}`);
-    } else {
-      console.log(`[UPLOADS LOG] File found: ${filePath}`);
-    }
-    next();
-  });
-});
 
 // Socket.IO logic
 io.on('connection', (socket) => {

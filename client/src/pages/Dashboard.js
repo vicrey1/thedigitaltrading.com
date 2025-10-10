@@ -618,13 +618,13 @@ const Dashboard = ({ adminView = false, portfolioData: adminPortfolioData }) => 
         <div className="glassmorphic p-6 rounded-xl mb-6">
           <h3 className="text-lg font-bold mb-2">Chat & Support</h3>
           <div className="flex flex-col gap-4 mb-2">
-            <button
-              className="w-full bg-blue-500 text-white py-4 sm:py-6 rounded-xl font-bold text-base sm:text-lg flex items-center justify-center gap-3 shadow-lg hover:bg-blue-600 transition min-h-[56px] sm:min-h-[72px]"
-              onClick={() => window.location.href = '/dashboard/support'}
-            >
+            <div className="w-full bg-blue-500 text-white py-4 sm:py-6 rounded-xl font-bold text-base sm:text-lg flex items-center justify-center gap-3 shadow-lg min-h-[56px] sm:min-h-[72px]">
               <FiMessageCircle className="h-6 w-6 sm:h-7 sm:w-7" />
-              Support Chat
-            </button>
+              <div className="text-center">
+                <div>Live Chat Support</div>
+                <div className="text-xs font-normal opacity-90">Look for the chat widget in the bottom-right corner</div>
+              </div>
+            </div>
             <button
               className="w-full bg-green-500 text-white py-4 sm:py-6 rounded-xl font-bold text-base sm:text-lg flex items-center justify-center gap-3 shadow-lg hover:bg-green-600 transition min-h-[56px] sm:min-h-[72px]"
             >

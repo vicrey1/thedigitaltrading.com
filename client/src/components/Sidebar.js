@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FiHome, FiPieChart, FiDollarSign, FiUpload, 
-         FiFileText, FiShield, FiBell, FiMessageSquare, 
-         FiTarget, FiBook, FiSettings, FiMenu, FiX, FiLogOut, FiUsers } from 'react-icons/fi';
+         FiFileText, FiShield, FiBell, 
+         FiTarget, FiBook, FiSettings, FiMenu, FiX, FiUsers } from 'react-icons/fi';
 import { useUser } from '../contexts/UserContext';
 import '../custom-scrollbar.css';
 
@@ -28,7 +28,6 @@ const Sidebar = ({ collapsed = false, setCollapsed = () => {}, hasNewAnnouncemen
           )}
         </span>
       ), label: 'Announcements', path: '/dashboard/announcements' },
-    { icon: <FiMessageSquare />, label: 'Support Chat', path: '/dashboard/support' },
     { icon: <FiTarget />, label: 'My Goals', path: '/dashboard/goals' },
     { icon: <FiSettings />, label: 'Settings', path: '/dashboard/settings' },
     { icon: <FiBook />, label: 'Education Center', path: '/dashboard/education' },
@@ -36,12 +35,6 @@ const Sidebar = ({ collapsed = false, setCollapsed = () => {}, hasNewAnnouncemen
 
   // Desktop collapse/expand
   const handleCollapse = () => setCollapsed(!collapsed);
-  // Mobile open/close
-  const handleMobile = () => setMobileOpen(!mobileOpen);
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
 
   // Only render sidebar for user (not admin routes)
   if (window.location.pathname.startsWith('/admin')) return null;

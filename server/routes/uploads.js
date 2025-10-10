@@ -21,7 +21,4 @@ router.get('/kyc/:filename', auth, (req, res, next) => {
   });
 });
 
-// Serve support uploads as static files
-router.use('/support', express.static(path.join(__dirname, '../uploads/support')));
-
 module.exports = router;
