@@ -129,12 +129,12 @@ const UserDetail = ({ user, onClose, onUpdate, isMobile = false }) => {
         {/* Modal Container */}
         <div className={`bg-gray-900 rounded-xl shadow-2xl border border-gray-700 relative ${
           isMobile 
-            ? 'w-full h-full max-w-none max-h-none rounded-none' 
+            ? 'w-full h-full max-w-none max-h-none rounded-none flex flex-col' 
             : 'w-full max-w-4xl max-h-[90vh] rounded-xl'
         } overflow-hidden`}>
           
           {/* Modal Header */}
-          <div className="bg-gray-800 border-b border-gray-700 p-4 sm:p-6 flex items-center justify-between sticky top-0 z-10">
+          <div className={`bg-gray-800 border-b border-gray-700 p-4 sm:p-6 flex items-center justify-between ${isMobile ? 'flex-shrink-0' : 'sticky top-0'} z-10`}>
             <div className="flex items-center flex-1 min-w-0">
               <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-gold to-yellow-600 flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0 shadow-lg">
                 <span className="text-lg sm:text-2xl font-bold text-black">
@@ -162,7 +162,7 @@ const UserDetail = ({ user, onClose, onUpdate, isMobile = false }) => {
           </div>
 
           {/* Tab Navigation */}
-          <div className="bg-gray-800 border-b border-gray-700 px-4 sm:px-6">
+          <div className={`bg-gray-800 border-b border-gray-700 px-4 sm:px-6 ${isMobile ? 'flex-shrink-0' : ''}`}>
             <div className={`flex ${isMobile ? 'overflow-x-auto scrollbar-hide' : 'flex-wrap'} gap-1`}>
               {['overview', 'documents', 'activity', 'notes'].map((tab) => (
                 <button
@@ -181,11 +181,11 @@ const UserDetail = ({ user, onClose, onUpdate, isMobile = false }) => {
           </div>
 
           {/* Modal Content */}
-          <div className={`${isMobile ? 'h-full overflow-y-auto' : 'max-h-[calc(90vh-200px)] overflow-y-auto'} p-4 sm:p-6`}>
+          <div className={`${isMobile ? 'flex-1 min-h-0 overflow-y-auto' : 'max-h-[calc(90vh-200px)] overflow-y-auto'} p-4 sm:p-6`}>
             
             {/* Overview Tab */}
             {activeTab === 'overview' && (
-              <div className="space-y-6">
+              <div className={`space-y-6 ${isMobile ? 'pb-8' : ''}`}>
                 {/* Account Details */}
                 <div className="bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-700">
                   <h3 className="text-lg sm:text-xl font-bold mb-4 text-white flex items-center">

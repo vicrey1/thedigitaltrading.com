@@ -136,14 +136,7 @@ const AdminLayout = () => {
             {(sidebarOpen || isMobile) && <span className="text-sm md:text-base">Users</span>}
           </Link>
           
-          <Link 
-            to="/admin/investments" 
-            className={`flex items-center px-3 md:px-4 py-3 md:py-3 rounded-lg transition-all hover:bg-gray-800 text-gray-200 hover:text-gold font-medium min-h-[48px] ${!sidebarOpen && !isMobile ? 'justify-center' : ''}`}
-            onClick={closeSidebar}
-          >
-            <FiDollarSign className={`text-lg md:text-xl ${sidebarOpen || isMobile ? 'mr-3' : ''}`} />
-            {(sidebarOpen || isMobile) && <span className="text-sm md:text-base">Investments</span>}
-          </Link>
+
           
           <Link 
             to="/admin/deposits" 
@@ -264,17 +257,6 @@ const AdminLayout = () => {
                   Logout
                 </button>
               </div>
-            )}
-            {/* Logout button for collapsed sidebar */}
-            {!sidebarOpen && !isMobile && (
-              <button 
-                onClick={logout}
-                className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-colors mt-2"
-                title="Logout"
-                aria-label="Logout"
-              >
-                <FiLogOut className="text-lg md:text-xl" />
-              </button>
             )}
           </div>
         </div>
