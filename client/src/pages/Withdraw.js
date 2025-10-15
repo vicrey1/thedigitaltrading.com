@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiCheck, FiInfo, FiClock, FiDollarSign, FiCopy, FiAlertTriangle } from 'react-icons/fi';
-import { submitWithdrawal, verifyWithdrawalPin, checkPinStatus } from '../services/withdrawalAPI';
+import { submitWithdrawal, checkPinStatus } from '../services/withdrawalAPI';
 import WithdrawalHistory from '../components/WithdrawalHistory';
 import BillingForm from '../components/BillingForm';
 import PinManager from '../components/PinManager';
@@ -231,7 +231,7 @@ const Withdraw = () => {
     }
   }
 
-  // Validate PIN with backend before proceeding to confirmation
+  // Validate PIN format before proceeding to confirmation
   const handleAmountSubmit = async (e) => {
     e.preventDefault();
     setPinError('');
@@ -239,12 +239,8 @@ const Withdraw = () => {
       setPinError('PIN must be exactly 6 digits.');
       return;
     }
-    try {
-      await verifyWithdrawalPin(pin);
-      setStep(2);
-    } catch (error) {
-      setPinError(error?.msg || 'Invalid withdrawal PIN.');
-    }
+    // PIN validation will be done during actual withdrawal submission
+    setStep(2);
   };
 
   if (loading) {
