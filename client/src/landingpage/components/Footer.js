@@ -35,7 +35,7 @@ function Footer() {
                 e('div', null,
                     e('h3', { className: 'text-lg font-serif text-brand-accent mb-4' }, 'Connect'),
                     e('p', { className: 'text-sm mb-2' }, e('a', { href: 'mailto:info@thedigitaltrading.com', className: 'hover:text-brand-light' }, 'info@thedigitaltrading.com')),
-                    e('p', { className: 'text-sm mb-4' }, e('a', { href: 'tel:+15551234567', className: 'hover:text-brand-light' }, '+1 (555) 123-4567')),
+                    e('p', { className: 'text-sm mb-4' }, e('a', { href: 'tel:+18652310830', className: 'hover:text-brand-light' }, '+1 (865) 231-0830')),
                     e('div', { className: 'flex space-x-4' },
                         e('a', { href: 'https://www.linkedin.com/company/thedigitaltrading', className: 'text-brand-light/70 hover:text-brand-accent' }, e(Linkedin, { className: 'h-5 w-5' })),
                         e('a', { href: 'https://twitter.com/thedigitaltrading', className: 'text-brand-light/70 hover:text-brand-accent' }, e(Twitter, { className: 'h-5 w-5' }))

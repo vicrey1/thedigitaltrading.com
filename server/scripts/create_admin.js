@@ -25,7 +25,7 @@ async function createAdmin() {
     name,
     email,
     username: email.split('@')[0],
-    phone: '+10000000000',
+    phone: '+18652310830',
     country: 'Admin',
     securityQuestion: 'What is your admin code?',
     securityAnswer: 'admin',

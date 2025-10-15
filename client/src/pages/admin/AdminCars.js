@@ -683,7 +683,7 @@ const AdminCars = () => {
                     value={formData.contactPhone}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gold"
-                    placeholder="+1 (555) 123-4567"
+                    placeholder="+1 (865) 231-0830"
                   />
                 </div>
                 <div>

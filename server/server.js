@@ -110,6 +110,7 @@ app.use(require('./routes/sendTestEmail'));
 app.use('/api/test', require('./routes/test'));
 app.use('/uploads/announcements', express.static(__dirname + '/uploads/announcements'));
 app.use('/uploads/cars', express.static(__dirname + '/uploads/cars'));
+app.use('/uploads/kyc', express.static(__dirname + '/uploads/kyc'));
 app.use('/api', require('./routes/announcementUploads'));
 app.use('/api/performance', require('./routes/performance')); // Add performance metrics API route
 app.use('/api/news', require('./routes/news')); // Add news API route
