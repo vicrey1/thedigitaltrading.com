@@ -172,7 +172,8 @@ const Withdraw = () => {
       
       refreshUserData(); // Trigger global refresh
     } catch (error) {
-      setPinError(error?.msg || 'Withdrawal error.');
+      const serverMsg = error?.response?.data?.msg || error?.message;
+      setPinError(serverMsg || 'Withdrawal error.');
     } finally {
       setIsSubmitting(false);
     }
