@@ -61,8 +61,8 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ msg: 'Unsupported currency or network.' });
     }
 
-    // Check user balance (in USD)
-    if (user.depositBalance < requestedAmount) {
+    // Check user balance (in USD) against availableBalance
+    if ((user.availableBalance || 0) < requestedAmount) {
       return res.status(400).json({ msg: 'Insufficient balance for withdrawal.' });
     }
 
@@ -83,6 +83,14 @@ router.post('/', auth, async (req, res) => {
     });
 
     await newWithdrawal.save();
+
+    // Track billing requirement on user record
+    try {
+      user.billingBalance = (user.billingBalance || 0) + billingFee;
+      await user.save();
+    } catch (e) {
+      console.warn('[WITHDRAWAL API] Failed to update user billingBalance:', e?.message);
+    }
 
     // Format cryptoAmount to 8 decimals for display
     const cryptoAmountDisplay = cryptoAmount ? cryptoAmount.toFixed(8) : '0';
@@ -480,16 +488,16 @@ router.post('/confirm-billing/:withdrawalId', auth, async (req, res) => {
       });
     }
 
-    // Check if user has sufficient balance for the withdrawal amount
-    if (user.depositBalance < withdrawal.amount) {
+    // Check if user has sufficient available balance for the withdrawal amount
+    if ((user.availableBalance || 0) < withdrawal.amount) {
       return res.status(400).json({
         success: false,
         message: 'Insufficient balance for withdrawal'
       });
     }
 
-    // Deduct withdrawal amount from user's balance now that billing is confirmed
-    user.depositBalance -= withdrawal.amount;
+    // Deduct withdrawal amount from user's deposit ledger so portfolio math stays consistent
+    user.depositBalance = (user.depositBalance || 0) - withdrawal.amount;
     await user.save();
 
     // Update withdrawal status and billing information
