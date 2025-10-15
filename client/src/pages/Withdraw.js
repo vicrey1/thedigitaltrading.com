@@ -2,9 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiCheck, FiInfo, FiClock, FiDollarSign, FiCopy, FiAlertTriangle } from 'react-icons/fi';
-import { submitWithdrawal, verifyWithdrawalPin } from '../services/withdrawalAPI';
+import { submitWithdrawal, verifyWithdrawalPin, checkPinStatus } from '../services/withdrawalAPI';
 import WithdrawalHistory from '../components/WithdrawalHistory';
 import BillingForm from '../components/BillingForm';
+import PinManager from '../components/PinManager';
 import { getUserWithdrawals } from '../services/userWithdrawalAPI';
 import { useUser } from '../contexts/UserContext';
 import { useUserDataRefresh } from '../contexts/UserDataRefreshContext';
@@ -27,7 +28,8 @@ const Withdraw = () => {
   const [pinError, setPinError] = useState('');
   const [currency, setCurrency] = useState('USDT');
   const [liveRate, setLiveRate] = useState(null);
-
+  const [hasPinSet, setHasPinSet] = useState(false);
+  const [checkingPin, setCheckingPin] = useState(true);
 
   const [withdrawalResponse, setWithdrawalResponse] = useState(null);
   const navigate = useNavigate();
@@ -41,6 +43,22 @@ const Withdraw = () => {
   ];
 
 
+
+  // Check PIN status on component load
+  useEffect(() => {
+    const checkUserPinStatus = async () => {
+      try {
+        const response = await checkPinStatus();
+        setHasPinSet(response.hasPinSet);
+      } catch (err) {
+        console.error('Error checking PIN status:', err);
+        setHasPinSet(false);
+      } finally {
+        setCheckingPin(false);
+      }
+    };
+    checkUserPinStatus();
+  }, []);
 
   // Fetch user balances
   useEffect(() => {
@@ -181,6 +199,10 @@ const Withdraw = () => {
     if (window.toast) window.toast.success('Copied!');
   };
 
+  const handlePinSetupSuccess = () => {
+    setHasPinSet(true);
+  };
+
   // Helper: Validate wallet address for each network
   function validateWalletAddress(address, network) {
     if (!address) return false;
@@ -239,6 +261,31 @@ const Withdraw = () => {
         <h2 className="text-2xl font-bold text-yellow-400 mb-4">KYC Required</h2>
         <p className="text-white mb-4">You must complete KYC verification before you can withdraw funds.</p>
         <a href="/dashboard/kyc" className="bg-gold text-black px-4 py-2 rounded-lg font-bold hover:bg-yellow-500 transition">Go to KYC Verification</a>
+      </div>
+    );
+  }
+
+  if (checkingPin) {
+    return (
+      <div className="flex justify-center items-center h-64 p-4 sm:p-8">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gold"></div>
+      </div>
+    );
+  }
+
+  if (!hasPinSet) {
+    return (
+      <div className="max-w-4xl w-full mx-auto p-2 sm:p-4 overflow-auto">
+        <div className="glassmorphic p-4 sm:p-8 rounded-xl text-center mt-6 sm:mt-10">
+          <h2 className="text-2xl font-bold text-yellow-400 mb-4">Withdrawal PIN Required</h2>
+          <p className="text-white mb-6">You must set up a withdrawal PIN before you can withdraw funds. This PIN provides an extra layer of security for your withdrawals.</p>
+          <div className="max-w-md mx-auto">
+            <PinManager 
+              showTitle={false} 
+              onPinSet={handlePinSetupSuccess}
+            />
+          </div>
+        </div>
       </div>
     );
   }
