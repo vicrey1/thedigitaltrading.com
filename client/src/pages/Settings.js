@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ConfirmModal from '../components/ConfirmModal';
+import PinManager from '../components/PinManager';
 import { FiUser, FiLock, FiBell, FiGlobe, FiMoon, FiSun, FiEdit2, FiSave, FiX, FiShield, FiKey, FiLogOut, FiSettings, FiTrash2, FiActivity, FiUserX, FiSmartphone, FiMail, FiCreditCard, FiGift, FiUsers, FiHelpCircle, FiEye, FiEyeOff } from 'react-icons/fi';
 import axios from 'axios';
 import EmailVerification from '../components/EmailVerification';
@@ -30,18 +31,7 @@ export default function Settings({ adminView = false, userData = null }) {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [changePassStep, setChangePassStep] = useState(1);
 
-  // Withdrawal PIN state
-  const [pin, setPin] = useState('');
-  const [pinMsg, setPinMsg] = useState('');
-  const [pinError, setPinError] = useState('');
-
-  // PIN reset state
-  const [showPinReset, setShowPinReset] = useState(false);
-  const [resetStep, setResetStep] = useState(1);
-  const [resetCode, setResetCode] = useState('');
-  const [resetNewPin, setResetNewPin] = useState('');
-  const [resetMsg, setResetMsg] = useState('');
-  const [resetError, setResetError] = useState('');
+  // PIN-related state is now handled by PinManager component
 
   // Only keep loginHistory if setter is not used
   const [loginHistory] = useState([]);
@@ -197,45 +187,7 @@ export default function Settings({ adminView = false, userData = null }) {
   const kycVerified = profile?.kyc === 'Verified';
   const handleSave = () => {};
 
-  // Set or update withdrawal PIN
-  const handleSetPin = async () => {
-    if (adminView) return; // Disable in admin view
-    setPinMsg('');
-    setPinError('');
-    if (!/^[0-9]{6}$/.test(pin)) {
-      setPinError('PIN must be exactly 6 digits.');
-      return;
-    }
-    try {
-      // await setWithdrawalPin(pin); // Removed: setWithdrawalPin is not defined here
-      setPinMsg('Withdrawal PIN set successfully!');
-      setPin('');
-    } catch (err) {
-      setPinError(err.response?.data?.msg || 'Failed to set PIN.');
-    }
-  };
-
-  // Request PIN reset code
-  const requestPinReset = async () => {
-    if (adminView) return; // Disable in admin view
-    try {
-      const res = await axios.post('/api/auth/request-pin-reset', { email: profile.email });
-      return res.data;
-    } catch (err) {
-      throw new Error(err.response?.data?.msg || 'Failed to send PIN reset code.');
-    }
-  };
-
-  // Reset PIN
-  const resetPin = async (code, newPin) => {
-    if (adminView) return; // Disable in admin view
-    try {
-      const res = await axios.post('/api/auth/reset-pin', { code, newPin });
-      return res.data;
-    } catch (err) {
-      throw new Error(err.response?.data?.msg || 'Failed to reset PIN.');
-    }
-  };
+  // PIN-related functions are now handled by PinManager component
 
   if (loadingProfile || !profile || !form) {
     return <div className="w-full max-w-4xl mx-auto p-4 text-center text-lg text-gold">Loading profile...</div>;
@@ -337,93 +289,7 @@ export default function Settings({ adminView = false, userData = null }) {
       </div>
 
       {/* Withdrawal PIN Section */}
-      <div className="glassmorphic p-3 sm:p-6 rounded-xl w-full space-y-4">
-        <div className="flex items-center gap-4 mb-4">
-          <FiLock className="text-2xl text-gold" />
-          <span className="font-semibold text-lg">Withdrawal PIN</span>
-        </div>
-        <div className={`flex ${isMobile ? 'flex-col' : 'flex-col sm:flex-row'} gap-2 items-center mb-2 w-full`}>
-          <input
-            type="password"
-            value={pin}
-            onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-            className={`p-2 rounded bg-gray-800 text-white border border-gray-700 focus:border-gold outline-none ${isMobile ? 'w-full' : ''}`}
-            placeholder="Set or update 6-digit PIN"
-            maxLength={6}
-            minLength={6}
-            pattern="[0-9]{6}"
-          />
-          <div className={`flex ${isMobile ? 'flex-col w-full' : 'flex-row'} gap-2`}>
-            <button className={`bg-gold text-black px-4 py-2 rounded-lg hover:bg-yellow-400 ${isMobile ? 'w-full' : ''}`} onClick={handleSetPin}>
-              Set PIN
-            </button>
-            <button className={`text-blue-400 underline ${isMobile ? 'text-center py-2' : 'ml-2'}`} onClick={() => setShowPinReset(true)}>
-              Forgot PIN?
-            </button>
-          </div>
-        </div>
-        {pinMsg && <div className="mt-2 text-green-400">{pinMsg}</div>}
-        {pinError && <div className="mt-2 text-red-400">{pinError}</div>}
-        
-        {/* PIN Reset Modal */}
-        {showPinReset && (
-          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 overflow-y-auto">
-            <div className={`bg-gray-900 p-3 sm:p-8 rounded-xl shadow-lg w-full ${isMobile ? 'max-w-xs mx-4' : 'max-w-sm mx-2'}`}>
-              <h2 className="text-xl font-bold mb-4">Reset Withdrawal PIN</h2>
-              {resetStep === 1 && (
-                <>
-                  <p className="mb-4 text-gray-300">A 6-digit code will be sent to your email.</p>
-                  <button className="bg-gold text-black px-4 py-2 rounded-lg w-full" onClick={async () => {
-                    setResetMsg(''); setResetError('');
-                    try {
-                      await requestPinReset();
-                      setResetStep(2);
-                    } catch (err) {
-                      setResetError(err.response?.data?.msg || 'Failed to send code.');
-                    }
-                  }}>Send Code</button>
-                </>
-              )}
-              {resetStep === 2 && (
-                <>
-                  <label className="block mb-2 mt-4">Enter Email Code</label>
-                  <input 
-                    type="text" 
-                    value={resetCode} 
-                    onChange={e => setResetCode(e.target.value.replace(/\D/g, '').slice(0,6))} 
-                    className="w-full p-2 rounded bg-gray-800 text-white border border-gold focus:outline-none mb-4" 
-                    maxLength={6} 
-                  />
-                  <label className="block mb-2">New 6-digit PIN</label>
-                  <input 
-                    type="password" 
-                    value={resetNewPin} 
-                    onChange={e => setResetNewPin(e.target.value.replace(/\D/g, '').slice(0,6))} 
-                    className="w-full p-2 rounded bg-gray-800 text-white border border-gold focus:outline-none mb-4" 
-                    maxLength={6} 
-                  />
-                  <button className="bg-gold text-black px-4 py-2 rounded-lg w-full" onClick={async () => {
-                    setResetMsg(''); setResetError('');
-                    try {
-                      await resetPin(resetCode, resetNewPin);
-                      setResetMsg('PIN reset successfully!');
-                      setShowPinReset(false);
-                      setResetStep(1);
-                      setResetCode('');
-                      setResetNewPin('');
-                    } catch (err) {
-                      setResetError(err.response?.data?.msg || 'Failed to reset PIN.');
-                    }
-                  }}>Reset PIN</button>
-                </>
-              )}
-              {resetMsg && <div className="mt-2 text-green-400">{resetMsg}</div>}
-              {resetError && <div className="mt-2 text-red-400">{resetError}</div>}
-              <button className="mt-4 text-gray-400 underline w-full" onClick={() => { setShowPinReset(false); setResetStep(1); setResetCode(''); setResetNewPin(''); }}>Cancel</button>
-            </div>
-          </div>
-        )}
-      </div>
+      <PinManager disabled={adminView} />
 
       {/* Change Password Section */}
       <div className="glassmorphic p-3 sm:p-6 rounded-xl w-full space-y-4">

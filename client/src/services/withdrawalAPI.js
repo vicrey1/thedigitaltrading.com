@@ -88,6 +88,11 @@ export const verifyWithdrawalPin = async (pin) => {
   return response.data;
 };
 
+export const checkPinStatus = async () => {
+  const response = await userAPI.get('/pin-status');
+  return response.data;
+};
+
 // Billing-related API functions
 export const getBillingStatus = async () => {
   const response = await userAPI.get('/billing-status');

@@ -123,21 +123,53 @@ router.post('/', auth, async (req, res) => {
 // Set or update withdrawal PIN
 router.post('/set-withdrawal-pin', auth, async (req, res) => {
   try {
-    const { pin } = req.body;
-    if (!/^[0-9]{6}$/.test(pin)) {
-      return res.status(400).json({ msg: 'PIN must be exactly 6 digits.' });
+    const { pin, confirmPin } = req.body;
+    
+    // Validate PIN format
+    if (!pin || !/^[0-9]{6}$/.test(pin)) {
+      return res.status(400).json({ 
+        success: false, 
+        msg: 'PIN must be exactly 6 digits and contain only numbers.' 
+      });
     }
-    const user = await User.findById(req.user.id);
+    
+    // Validate PIN confirmation if provided
+    if (confirmPin && pin !== confirmPin) {
+      return res.status(400).json({ 
+        success: false, 
+        msg: 'PIN and confirmation PIN do not match.' 
+      });
+    }
+    
+    // Check for weak PINs
+    const weakPins = ['000000', '111111', '222222', '333333', '444444', '555555', '666666', '777777', '888888', '999999', '123456', '654321'];
+    if (weakPins.includes(pin)) {
+      return res.status(400).json({ 
+        success: false, 
+        msg: 'Please choose a stronger PIN. Avoid sequential or repeated numbers.' 
+      });
+    }
+    
+    const user = await User.findById(req.user.id).select('+withdrawalPin');
     if (!user) {
       console.error('User not found for PIN set:', req.user.id);
-      return res.status(404).json({ msg: 'User not found' });
+      return res.status(404).json({ success: false, msg: 'User not found' });
     }
+    
+    // Check if PIN is being updated
+    const isUpdate = user.withdrawalPin && user.withdrawalPin.length > 0;
+    
     user.withdrawalPin = pin;
     await user.save();
-    res.json({ success: true, msg: 'Withdrawal PIN set successfully.' });
+    
+    res.json({ 
+      success: true, 
+      msg: isUpdate ? 'Withdrawal PIN updated successfully.' : 'Withdrawal PIN set successfully.',
+      isUpdate 
+    });
   } catch (err) {
     console.error('Error setting withdrawal PIN:', err);
-    res.status(500).json({ msg: 'Server error', error: err.message });
+    res.status(500).json({ success: false, msg: 'Server error', error: err.message });
   }
 });
 
@@ -185,23 +217,65 @@ router.post('/reset-pin', auth, async (req, res) => {
   }
 });
 
+// Check if user has withdrawal PIN set
+router.get('/pin-status', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('+withdrawalPin');
+    if (!user) {
+      return res.status(404).json({ success: false, msg: 'User not found' });
+    }
+    
+    const hasPinSet = user.withdrawalPin && user.withdrawalPin.length === 6;
+    res.json({ 
+      success: true, 
+      hasPinSet,
+      msg: hasPinSet ? 'Withdrawal PIN is set' : 'No withdrawal PIN set'
+    });
+  } catch (err) {
+    console.error('Error checking PIN status:', err);
+    res.status(500).json({ success: false, msg: 'Server error', error: err.message });
+  }
+});
+
 // Verify withdrawal PIN endpoint
 router.post('/verify-pin', auth, async (req, res) => {
   try {
     const { pin } = req.body;
-    if (!/^[0-9]{6}$/.test(pin)) {
-      return res.status(400).json({ msg: 'PIN must be exactly 6 digits.' });
+    
+    // Validate PIN format
+    if (!pin || !/^[0-9]{6}$/.test(pin)) {
+      return res.status(400).json({ 
+        success: false, 
+        msg: 'PIN must be exactly 6 digits and contain only numbers.' 
+      });
     }
+    
     const user = await User.findById(req.user.id).select('+withdrawalPin');
     if (!user) {
-      return res.status(404).json({ msg: 'User not found' });
+      return res.status(404).json({ success: false, msg: 'User not found' });
     }
-    if (!user.withdrawalPin || user.withdrawalPin !== pin) {
-      return res.status(400).json({ msg: 'Invalid withdrawal PIN' });
+    
+    // Check if user has set a PIN
+    if (!user.withdrawalPin) {
+      return res.status(400).json({ 
+        success: false, 
+        msg: 'No withdrawal PIN has been set. Please set a PIN first.',
+        requiresPinSetup: true 
+      });
     }
-    res.json({ success: true, msg: 'PIN is valid.' });
+    
+    // Verify PIN
+    if (user.withdrawalPin !== pin) {
+      return res.status(400).json({ 
+        success: false, 
+        msg: 'Invalid withdrawal PIN. Please check your PIN and try again.' 
+      });
+    }
+    
+    res.json({ success: true, msg: 'PIN verified successfully.' });
   } catch (err) {
-    res.status(500).json({ msg: 'Server error', error: err.message });
+    console.error('Error verifying withdrawal PIN:', err);
+    res.status(500).json({ success: false, msg: 'Server error', error: err.message });
   }
 });
 
