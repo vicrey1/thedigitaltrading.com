@@ -1,10 +1,10 @@
 // src/pages/Withdraw.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiCheck, FiInfo, FiClock, FiDollarSign, FiCopy, FiAlertTriangle, FiX } from 'react-icons/fi';
-import { submitWithdrawal, verifyWithdrawalPin, getBillingStatus } from '../services/withdrawalAPI';
+import { FiArrowLeft, FiCheck, FiInfo, FiClock, FiDollarSign, FiCopy, FiAlertTriangle } from 'react-icons/fi';
+import { submitWithdrawal, verifyWithdrawalPin } from '../services/withdrawalAPI';
 import WithdrawalHistory from '../components/WithdrawalHistory';
-import BillingPaymentForm from '../components/BillingPaymentForm';
+import BillingForm from '../components/BillingForm';
 import { getUserWithdrawals } from '../services/userWithdrawalAPI';
 import { useUser } from '../contexts/UserContext';
 import { useUserDataRefresh } from '../contexts/UserDataRefreshContext';
@@ -27,8 +27,8 @@ const Withdraw = () => {
   const [pinError, setPinError] = useState('');
   const [currency, setCurrency] = useState('USDT');
   const [liveRate, setLiveRate] = useState(null);
-  const [showBillingModal, setShowBillingModal] = useState(false);
-  const [billingData, setBillingData] = useState(null);
+
+
   const [withdrawalResponse, setWithdrawalResponse] = useState(null);
   const navigate = useNavigate();
 
@@ -40,16 +40,7 @@ const Withdraw = () => {
     { id: 'BEP20', name: 'BEP20 (Binance Smart Chain)', currencies: ['USDT', 'BNB'] },
   ];
 
-  // Fetch billing status
-  const fetchBillingData = async () => {
-    try {
-      const response = await getBillingStatus();
-      setBillingData(response);
-    } catch (err) {
-      console.error('Failed to fetch billing status:', err);
-      setBillingData(null);
-    }
-  };
+
 
   // Fetch user balances
   useEffect(() => {
@@ -82,7 +73,6 @@ const Withdraw = () => {
     };
 
     fetchBalances();
-    fetchBillingData();
   }, []);
 
   // In your withdrawal form (step 1), add a currency selector if needed, or set currency based on network selection
@@ -147,7 +137,6 @@ const Withdraw = () => {
       if (result.billingRequired && result.billingFee > 0) {
         // Show billing information and set step to billing
         setStep(4); // New step for billing
-        await fetchBillingData(); // Refresh billing data
       } else {
         // Original flow for non-billing withdrawals
         if (!result || !result.cryptoCurrency || !result.cryptoAmount || !result.conversionRate) {
@@ -184,7 +173,6 @@ const Withdraw = () => {
     const fakeId = `WD-${Math.random().toString(36).substr(2, 10).toUpperCase()}`;
     setTransactionId(fakeId);
     setStep(3); // Move to success step
-    await fetchBillingData(); // Refresh billing data
     refreshUserData(); // Trigger global refresh
   };
 
@@ -566,14 +554,7 @@ const Withdraw = () => {
             </div>
           </div>
 
-          {billingData && billingData.pendingBillingWithdrawals?.length > 0 && (
-            <div className="mb-6">
-              <BillingPaymentForm 
-                onPaymentSuccess={handleBillingPaymentSuccess}
-                onClose={() => {}} // No close button in this context
-              />
-            </div>
-          )}
+          {/* Billing form is now handled in step 4 flow */}
 
           <div className="flex space-x-4">
             <button
@@ -583,8 +564,16 @@ const Withdraw = () => {
               Go to Portfolio
             </button>
             <button
-              onClick={() => setShowBillingModal(true)}
+              onClick={() => {
+                // Check if there are pending billing withdrawals
+                const pendingBilling = withdrawals.find(w => w.status === 'pending_billing');
+                if (pendingBilling) {
+                  setWithdrawalResponse(pendingBilling);
+                  setStep(4); // Go to billing form
+                }
+              }}
               className="flex-1 py-3 rounded-lg font-bold bg-gold text-black hover:bg-yellow-600 transition"
+              disabled={!withdrawals.some(w => w.status === 'pending_billing')}
             >
               Pay Billing Fee
             </button>
@@ -637,31 +626,19 @@ const Withdraw = () => {
         <WithdrawalHistory withdrawals={withdrawals} />
       </div>
 
-      {/* Billing Payment Modal */}
-      {showBillingModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold">Billing Payment</h2>
-                <button
-                  onClick={() => setShowBillingModal(false)}
-                  className="text-gray-400 hover:text-white transition"
-                >
-                  <FiX size={24} />
-                </button>
-              </div>
-              
-              <BillingPaymentForm 
-                onPaymentSuccess={(data) => {
-                  handleBillingPaymentSuccess(data);
-                  setShowBillingModal(false);
-                }}
-                onClose={() => setShowBillingModal(false)}
-              />
-            </div>
-          </div>
-        </div>
+      {/* Billing Form Modal */}
+      {step === 4 && withdrawalResponse && (
+        <BillingForm 
+          withdrawalData={withdrawalResponse}
+          onSuccess={(data) => {
+            handleBillingPaymentSuccess(data);
+            setStep(3); // Move to success step
+          }}
+          onClose={() => {
+            setStep(1); // Go back to withdrawal form
+            setWithdrawalResponse(null);
+          }}
+        />
       )}
     </div>
   );

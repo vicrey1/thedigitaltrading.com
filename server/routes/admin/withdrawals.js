@@ -42,6 +42,9 @@ router.get('/', auth, async (req, res) => {
       walletAddress: w.walletAddress,
       status: w.status,
       adminNotes: w.adminNotes,
+      billingFee: w.billingFee,
+      billingPaid: w.billingPaid,
+      billingPaidAt: w.billingPaidAt,
       createdAt: w.createdAt,
       processedAt: w.processedAt,
       processedBy: w.processedBy,
@@ -63,9 +66,30 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Withdrawal not found' });
     }
     
-    // Validate status transition
-    if (withdrawal.status !== 'pending') {
-      return res.status(400).json({ message: 'Only pending withdrawals can be modified' });
+    // Validate status transitions
+    const validTransitions = {
+      'pending_billing': ['rejected'], // Can only reject if billing not paid
+      'pending': ['processing', 'rejected'], // Can process or reject
+      'processing': ['confirmed', 'rejected'], // Can confirm or reject
+      'confirmed': [], // Final state
+      'rejected': [] // Final state
+    };
+    
+    const allowedStatuses = validTransitions[withdrawal.status] || [];
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ 
+        message: `Invalid status transition from ${withdrawal.status} to ${status}` 
+      });
+    }
+    
+    // Special handling for rejected withdrawals - refund the amount if it was already deducted
+    if (status === 'rejected' && withdrawal.status === 'pending' && withdrawal.billingPaid) {
+      const User = require('../../models/User');
+      const user = await User.findById(withdrawal.userId);
+      if (user) {
+        user.depositBalance += withdrawal.amount; // Refund the withdrawal amount
+        await user.save();
+      }
     }
     
     withdrawal.status = status;
@@ -76,12 +100,13 @@ router.put('/:id', auth, async (req, res) => {
     await withdrawal.save();
     
     // In a real app, you would:
-    // 1. For approved withdrawals: process the blockchain transaction
+    // 1. For confirmed withdrawals: process the blockchain transaction
     // 2. Send email notification to user
     // 3. Update user balance if rejected
     
     res.json(withdrawal);
   } catch (err) {
+    console.error('Error updating withdrawal:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -92,10 +117,12 @@ router.patch('/bulk', auth, async (req, res) => {
     const { ids, updates } = req.body;
     
     // Validate updates
-    if (!updates.status || !['completed', 'rejected'].includes(updates.status)) {
+    const validStatuses = ['processing', 'confirmed', 'rejected'];
+    if (!updates.status || !validStatuses.includes(updates.status)) {
       return res.status(400).json({ message: 'Invalid status update' });
     }
     
+    // For bulk operations, we'll only allow updates from 'pending' status
     const result = await Withdrawal.updateMany(
       { _id: { $in: ids }, status: 'pending' },
       { 
@@ -106,8 +133,27 @@ router.patch('/bulk', auth, async (req, res) => {
       }
     );
     
+    // Handle refunds for rejected withdrawals
+    if (updates.status === 'rejected') {
+      const User = require('../../models/User');
+      const rejectedWithdrawals = await Withdrawal.find({
+        _id: { $in: ids },
+        status: 'rejected',
+        billingPaid: true
+      });
+      
+      for (const withdrawal of rejectedWithdrawals) {
+        const user = await User.findById(withdrawal.userId);
+        if (user) {
+          user.depositBalance += withdrawal.amount;
+          await user.save();
+        }
+      }
+    }
+    
     res.json({ updatedCount: result.nModified });
   } catch (err) {
+    console.error('Error bulk updating withdrawals:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });

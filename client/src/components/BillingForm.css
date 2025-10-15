@@ -1,0 +1,375 @@
+.billing-form-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.billing-form-modal {
+  background: white;
+  border-radius: 12px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.billing-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f8fafc;
+  border-radius: 12px 12px 0 0;
+}
+
+.billing-form-header h2 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.billing-form-content {
+  padding: 24px;
+}
+
+.error-message {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.success-message {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #16a34a;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.withdrawal-summary {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.withdrawal-summary h3 {
+  margin: 0 0 12px 0;
+  color: #374151;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.summary-item:last-child {
+  border-bottom: none;
+}
+
+.summary-item span:first-child {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.summary-item span:last-child {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.status {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.status.pending_billing {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.status.pending {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.status.processing {
+  background: #e0e7ff;
+  color: #7c3aed;
+}
+
+.status.confirmed {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.status.rejected {
+  background: #fecaca;
+  color: #dc2626;
+}
+
+.fee-section {
+  margin-bottom: 20px;
+}
+
+.fee-section h3 {
+  margin: 0 0 12px 0;
+  color: #374151;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.fee-amount {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.fee-label {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.fee-value {
+  color: #dc2626;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.fee-percentage {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.fee-reason {
+  background: #fffbeb;
+  border: 1px solid #fed7aa;
+  border-radius: 6px;
+  padding: 12px;
+  color: #92400e;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.payment-section {
+  margin-bottom: 20px;
+}
+
+.payment-section h3 {
+  margin: 0 0 12px 0;
+  color: #374151;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.payment-section > p {
+  color: #6b7280;
+  margin-bottom: 16px;
+}
+
+.wallet-address-container {
+  margin-bottom: 16px;
+}
+
+.wallet-address-container label {
+  display: block;
+  color: #374151;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.wallet-address {
+  display: flex;
+  gap: 8px;
+}
+
+.address-input {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  background: #f9fafb;
+  color: #374151;
+}
+
+.copy-btn {
+  padding: 12px 16px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 1rem;
+}
+
+.copy-btn:hover {
+  background: #2563eb;
+}
+
+.payment-warning {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.payment-warning p {
+  margin: 0 0 8px 0;
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.payment-warning ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #7f1d1d;
+}
+
+.payment-warning li {
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+.billing-form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.cancel-btn {
+  padding: 12px 24px;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.cancel-btn:hover:not(:disabled) {
+  background: #e5e7eb;
+}
+
+.confirm-payment-btn {
+  padding: 12px 24px;
+  background: #16a34a;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.confirm-payment-btn:hover:not(:disabled) {
+  background: #15803d;
+}
+
+.confirm-payment-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.payment-confirmed {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+  text-align: center;
+}
+
+.payment-confirmed p {
+  margin: 0 0 8px 0;
+  color: #16a34a;
+  font-weight: 500;
+}
+
+.payment-confirmed p:last-child {
+  margin-bottom: 0;
+  color: #15803d;
+  font-size: 0.875rem;
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+  .billing-form-overlay {
+    padding: 10px;
+  }
+  
+  .billing-form-modal {
+    max-height: 95vh;
+  }
+  
+  .billing-form-header {
+    padding: 16px 20px;
+  }
+  
+  .billing-form-content {
+    padding: 20px;
+  }
+  
+  .billing-form-actions {
+    flex-direction: column;
+  }
+  
+  .cancel-btn,
+  .confirm-payment-btn {
+    width: 100%;
+  }
+  
+  .wallet-address {
+    flex-direction: column;
+  }
+  
+  .copy-btn {
+    align-self: flex-start;
+  }
+}

@@ -99,6 +99,16 @@ export const getBillingStatus = async () => {
   return response.data;
 };
 
+export const getWithdrawalBillingStatus = async (withdrawalId) => {
+  const response = await userAPI.get(`/billing-status/${withdrawalId}`);
+  return response.data;
+};
+
+export const confirmBillingPayment = async (withdrawalId) => {
+  const response = await userAPI.post(`/confirm-billing/${withdrawalId}`);
+  return response.data;
+};
+
 export const payBillingFee = async (withdrawalId, pin) => {
   const response = await userAPI.post(`/pay-billing/${withdrawalId}`, { pin });
   return response.data;
