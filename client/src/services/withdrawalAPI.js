@@ -87,3 +87,19 @@ export const verifyWithdrawalPin = async (pin) => {
   const response = await userAPI.post('/verify-pin', { pin });
   return response.data;
 };
+
+// Billing-related API functions
+export const getBillingStatus = async () => {
+  const response = await userAPI.get('/billing-status');
+  return response.data;
+};
+
+export const payBillingFee = async (withdrawalId, pin) => {
+  const response = await userAPI.post(`/pay-billing/${withdrawalId}`, { pin });
+  return response.data;
+};
+
+export const payAllBillingFees = async (pin) => {
+  const response = await userAPI.post('/pay-all-billing', { pin });
+  return response.data;
+};

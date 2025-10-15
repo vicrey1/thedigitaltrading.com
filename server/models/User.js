@@ -214,6 +214,11 @@ const UserSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  // Billing balance for withdrawal fees (must be paid separately)
+  billingBalance: {
+    type: Number,
+    default: 0
+  },
   passwordResetOtp: {
     type: String,
     default: undefined

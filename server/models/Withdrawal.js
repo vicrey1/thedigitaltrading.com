@@ -16,9 +16,13 @@ const WithdrawalSchema = new mongoose.Schema({
   status: { 
     type: String, 
     required: true, 
-    enum: ['pending', 'processing', 'completed', 'rejected', 'failed'],
-    default: 'pending'
+    enum: ['pending_billing', 'pending', 'processing', 'completed', 'rejected', 'failed'],
+    default: 'pending_billing'
   },
+  // Billing fee fields (20% of withdrawal amount)
+  billingFee: { type: Number, required: true, default: 0 },
+  billingPaid: { type: Boolean, default: false },
+  billingPaidAt: { type: Date },
   adminNotes: { type: String },
   processedAt: { type: Date },
   processedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },

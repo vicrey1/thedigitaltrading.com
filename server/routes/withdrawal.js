@@ -66,17 +66,26 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ msg: 'Insufficient balance for withdrawal.' });
     }
 
+    // Calculate 20% billing fee
+    const billingFee = requestedAmount * 0.20;
+
+    // Deduct withdrawal amount from user's balance
     user.depositBalance -= requestedAmount;
+    
+    // Add billing fee to user's billing balance (must be paid separately)
+    user.billingBalance += billingFee;
     await user.save();
 
-    // Create withdrawal record
+    // Create withdrawal record with billing information
     const newWithdrawal = new Withdrawal({
       userId: userId,
       amount: requestedAmount,
       currency: cryptoCurrency,
       network,
       walletAddress: address,
-      status: 'pending',
+      status: 'pending_billing', // Requires billing payment first
+      billingFee: billingFee,
+      billingPaid: false,
       fee: 0
     });
 
@@ -94,13 +103,16 @@ router.post('/', auth, async (req, res) => {
     });
     res.json({
       success: true,
-      msg: 'Withdrawal request submitted',
+      msg: 'Withdrawal request submitted. Please pay the billing fee to proceed.',
       withdrawal: newWithdrawal,
       requestedAmount,
       requestedCurrency,
       cryptoAmount: cryptoAmountDisplay,
       cryptoCurrency,
-      conversionRate
+      conversionRate,
+      billingFee: billingFee,
+      billingRequired: true,
+      userBillingBalance: user.billingBalance
     });
   } catch (err) {
     console.error('[WITHDRAWAL API] Error:', err);
@@ -188,6 +200,167 @@ router.post('/verify-pin', auth, async (req, res) => {
       return res.status(400).json({ msg: 'Invalid withdrawal PIN' });
     }
     res.json({ success: true, msg: 'PIN is valid.' });
+  } catch (err) {
+    res.status(500).json({ msg: 'Server error', error: err.message });
+  }
+});
+
+// Get user's billing balance and pending billing fees
+router.get('/billing-status', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    // Get pending withdrawals that require billing payment
+    const pendingBillingWithdrawals = await Withdrawal.find({
+      userId: req.user.id,
+      status: 'pending_billing',
+      billingPaid: false
+    });
+
+    res.json({
+      success: true,
+      billingBalance: user.billingBalance,
+      availableBalance: user.availableBalance,
+      pendingBillingWithdrawals: pendingBillingWithdrawals
+    });
+  } catch (err) {
+    res.status(500).json({ msg: 'Server error', error: err.message });
+  }
+});
+
+// Pay billing fee for a specific withdrawal
+router.post('/pay-billing/:withdrawalId', auth, async (req, res) => {
+  try {
+    const { withdrawalId } = req.params;
+    const { pin } = req.body;
+
+    // Verify PIN
+    if (!/^[0-9]{6}$/.test(pin)) {
+      return res.status(400).json({ msg: 'PIN must be exactly 6 digits.' });
+    }
+
+    const user = await User.findById(req.user.id).select('+withdrawalPin');
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    if (!user.withdrawalPin || user.withdrawalPin !== pin) {
+      return res.status(400).json({ msg: 'Invalid withdrawal PIN' });
+    }
+
+    // Find the withdrawal
+    const withdrawal = await Withdrawal.findOne({
+      _id: withdrawalId,
+      userId: req.user.id,
+      status: 'pending_billing',
+      billingPaid: false
+    });
+
+    if (!withdrawal) {
+      return res.status(404).json({ msg: 'Withdrawal not found or billing already paid' });
+    }
+
+    // Check if user has sufficient available balance to pay billing fee
+    if (user.availableBalance < withdrawal.billingFee) {
+      return res.status(400).json({ 
+        msg: 'Insufficient available balance to pay billing fee',
+        required: withdrawal.billingFee,
+        available: user.availableBalance
+      });
+    }
+
+    // Deduct billing fee from available balance
+    user.availableBalance -= withdrawal.billingFee;
+    user.billingBalance -= withdrawal.billingFee;
+    await user.save();
+
+    // Update withdrawal status
+    withdrawal.billingPaid = true;
+    withdrawal.billingPaidAt = new Date();
+    withdrawal.status = 'pending'; // Now ready for admin processing
+    await withdrawal.save();
+
+    res.json({
+      success: true,
+      msg: 'Billing fee paid successfully. Withdrawal is now pending admin approval.',
+      withdrawal: withdrawal,
+      remainingBillingBalance: user.billingBalance,
+      remainingAvailableBalance: user.availableBalance
+    });
+
+  } catch (err) {
+    res.status(500).json({ msg: 'Server error', error: err.message });
+  }
+});
+
+// Pay all pending billing fees at once
+router.post('/pay-all-billing', auth, async (req, res) => {
+  try {
+    const { pin } = req.body;
+
+    // Verify PIN
+    if (!/^[0-9]{6}$/.test(pin)) {
+      return res.status(400).json({ msg: 'PIN must be exactly 6 digits.' });
+    }
+
+    const user = await User.findById(req.user.id).select('+withdrawalPin');
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    if (!user.withdrawalPin || user.withdrawalPin !== pin) {
+      return res.status(400).json({ msg: 'Invalid withdrawal PIN' });
+    }
+
+    // Get all pending billing withdrawals
+    const pendingBillingWithdrawals = await Withdrawal.find({
+      userId: req.user.id,
+      status: 'pending_billing',
+      billingPaid: false
+    });
+
+    if (pendingBillingWithdrawals.length === 0) {
+      return res.status(400).json({ msg: 'No pending billing fees to pay' });
+    }
+
+    const totalBillingFee = pendingBillingWithdrawals.reduce((sum, w) => sum + w.billingFee, 0);
+
+    // Check if user has sufficient available balance
+    if (user.availableBalance < totalBillingFee) {
+      return res.status(400).json({ 
+        msg: 'Insufficient available balance to pay all billing fees',
+        required: totalBillingFee,
+        available: user.availableBalance
+      });
+    }
+
+    // Deduct total billing fee from available balance
+    user.availableBalance -= totalBillingFee;
+    user.billingBalance -= totalBillingFee;
+    await user.save();
+
+    // Update all withdrawals
+    const updatePromises = pendingBillingWithdrawals.map(withdrawal => {
+      withdrawal.billingPaid = true;
+      withdrawal.billingPaidAt = new Date();
+      withdrawal.status = 'pending';
+      return withdrawal.save();
+    });
+
+    await Promise.all(updatePromises);
+
+    res.json({
+      success: true,
+      msg: `All billing fees paid successfully. ${pendingBillingWithdrawals.length} withdrawals are now pending admin approval.`,
+      paidWithdrawals: pendingBillingWithdrawals.length,
+      totalPaid: totalBillingFee,
+      remainingBillingBalance: user.billingBalance,
+      remainingAvailableBalance: user.availableBalance
+    });
+
   } catch (err) {
     res.status(500).json({ msg: 'Server error', error: err.message });
   }

