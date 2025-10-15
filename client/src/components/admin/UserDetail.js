@@ -4,12 +4,27 @@ import { FiX, FiCheck, FiAlertTriangle, FiDownload, FiUser, FiMail, FiCalendar, 
 import { approveKYC, rejectKYC, updateUserTier, updateUserRole, getUserKeys } from '../../services/adminAPI';
 
 const fetchKYCImage = async (filename, token) => {
-  const response = await fetch(`/uploads/kyc/${filename}`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
-  if (!response.ok) throw new Error('Failed to fetch image');
-  const blob = await response.blob();
-  return URL.createObjectURL(blob);
+  try {
+    const response = await fetch(`/uploads/kyc/${filename}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error(`File not found: ${filename}`);
+      } else if (response.status === 403) {
+        throw new Error('Access denied: Admin privileges required');
+      } else {
+        throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+      }
+    }
+    
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
+  } catch (error) {
+    console.error('Error fetching KYC image:', error);
+    throw error;
+  }
 };
 
 const UserDetail = ({ user, onClose, onUpdate, isMobile = false }) => {
@@ -22,30 +37,45 @@ const UserDetail = ({ user, onClose, onUpdate, isMobile = false }) => {
   const [imageModal, setImageModal] = useState({ open: false, url: '', label: '' });
   const [keys, setKeys] = useState({ wallets: {}, loaded: false, error: '' });
   const [copiedField, setCopiedField] = useState(null);
-  const [kycImages, setKycImages] = useState({ idUrl: null, selfieUrl: null, loading: true });
+  const [kycImages, setKycImages] = useState({ idUrl: null, selfieUrl: null, loading: true, error: null });
 
   // Load KYC images with authentication
   useEffect(() => {
     const loadKycImages = async () => {
       if (!user.kyc?.idUrl && !user.kyc?.selfieUrl) {
-        setKycImages({ idUrl: null, selfieUrl: null, loading: false });
+        setKycImages({ idUrl: null, selfieUrl: null, loading: false, error: null });
         return;
       }
 
       const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
-      const images = { idUrl: null, selfieUrl: null, loading: false };
+      const images = { idUrl: null, selfieUrl: null, loading: false, error: null };
 
       try {
         if (user.kyc?.idUrl) {
           const filename = user.kyc.idUrl.split('/').pop();
-          images.idUrl = await fetchKYCImage(filename, token);
+          try {
+            images.idUrl = await fetchKYCImage(filename, token);
+          } catch (error) {
+            console.error(`Failed to load ID image (${filename}):`, error);
+            images.error = `ID image not found: ${filename}`;
+          }
         }
         if (user.kyc?.selfieUrl) {
           const filename = user.kyc.selfieUrl.split('/').pop();
-          images.selfieUrl = await fetchKYCImage(filename, token);
+          try {
+            images.selfieUrl = await fetchKYCImage(filename, token);
+          } catch (error) {
+            console.error(`Failed to load selfie image (${filename}):`, error);
+            if (!images.error) {
+              images.error = `Selfie image not found: ${filename}`;
+            } else {
+              images.error += ` | Selfie image not found: ${filename}`;
+            }
+          }
         }
       } catch (error) {
         console.error('Failed to load KYC images:', error);
+        images.error = 'Failed to load KYC images';
       }
 
       setKycImages(images);
@@ -545,6 +575,15 @@ const UserDetail = ({ user, onClose, onUpdate, isMobile = false }) => {
                         <h3 className="text-lg font-medium text-gray-300 mb-2">Loading Documents...</h3>
                         <p className="text-gray-400">Please wait while we load the KYC documents.</p>
                       </div>
+                    ) : kycImages.error ? (
+                      <div className="col-span-full text-center py-12">
+                        <div className="w-16 h-16 bg-red-900 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <FiAlertTriangle size={24} className="text-red-400" />
+                        </div>
+                        <h3 className="text-lg font-medium text-red-300 mb-2">Error Loading Documents</h3>
+                        <p className="text-red-400 text-sm">{kycImages.error}</p>
+                        <p className="text-gray-400 text-xs mt-2">The KYC files may have been deleted or moved from the server.</p>
+                      </div>
                     ) : (
                       <>
                         {kycImages.idUrl && (
@@ -579,7 +618,7 @@ const UserDetail = ({ user, onClose, onUpdate, isMobile = false }) => {
                             </div>
                           </div>
                         )}
-                        {!(kycImages.idUrl || kycImages.selfieUrl) && (
+                        {!(kycImages.idUrl || kycImages.selfieUrl) && !kycImages.error && (
                           <div className="col-span-full text-center py-12">
                             <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
                               <FiFileText size={24} className="text-gray-400" />
