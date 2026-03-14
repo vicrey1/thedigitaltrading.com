@@ -66,8 +66,15 @@ class BrevoOtpService {
         console.log('[BREVO] Registration OTP sent successfully:', result);
         return result;
       } catch (brevoError) {
+        // Check for IP whitelisting error
+        if (brevoError.response?.status === 401 && brevoError.response?.data?.code === 'unauthorized') {
+          console.warn('[BREVO] IP whitelisting error detected, using fallback mailer');
+          return await this.sendViaMail(email, 'Verify Your Email - THE DIGITAL TRADING', 
+            this.getRegistrationTemplate(otp, verificationUrl));
+        }
+        
         console.error('[BREVO] Error sending via Brevo, fallback to mailer:', brevoError.message);
-        // Fallback to mailer
+        // Fallback to mailer for other errors too
         return await this.sendViaMail(email, 'Verify Your Email - THE DIGITAL TRADING', 
           this.getRegistrationTemplate(otp, verificationUrl));
       }
@@ -100,6 +107,13 @@ class BrevoOtpService {
         console.log('[BREVO] Password reset OTP sent successfully:', result);
         return result;
       } catch (brevoError) {
+        // Check for IP whitelisting error
+        if (brevoError.response?.status === 401 && brevoError.response?.data?.code === 'unauthorized') {
+          console.warn('[BREVO] IP whitelisting error detected, using fallback mailer');
+          return await this.sendViaMail(email, 'Password Reset - THE DIGITAL TRADING',
+            this.getPasswordResetTemplate(otp, resetUrl));
+        }
+        
         console.error('[BREVO] Error sending password reset, fallback to mailer:', brevoError.message);
         return await this.sendViaMail(email, 'Password Reset - THE DIGITAL TRADING',
           this.getPasswordResetTemplate(otp, resetUrl));
@@ -133,6 +147,13 @@ class BrevoOtpService {
         console.log('[BREVO] Profile edit OTP sent successfully:', result);
         return result;
       } catch (brevoError) {
+        // Check for IP whitelisting error
+        if (brevoError.response?.status === 401 && brevoError.response?.data?.code === 'unauthorized') {
+          console.warn('[BREVO] IP whitelisting error detected, using fallback mailer');
+          return await this.sendViaMail(email, 'Profile Edit Confirmation - THE DIGITAL TRADING',
+            this.getProfileEditTemplate(otp));
+        }
+        
         console.error('[BREVO] Error sending profile edit, fallback to mailer:', brevoError.message);
         return await this.sendViaMail(email, 'Profile Edit Confirmation - THE DIGITAL TRADING',
           this.getProfileEditTemplate(otp));
@@ -166,6 +187,13 @@ class BrevoOtpService {
         console.log('[BREVO] Email verification OTP sent successfully:', result);
         return result;
       } catch (brevoError) {
+        // Check for IP whitelisting error
+        if (brevoError.response?.status === 401 && brevoError.response?.data?.code === 'unauthorized') {
+          console.warn('[BREVO] IP whitelisting error detected, using fallback mailer');
+          return await this.sendViaMail(email, 'Email Verification - THE DIGITAL TRADING',
+            this.getEmailVerificationTemplate(otp));
+        }
+        
         console.error('[BREVO] Error sending email verification, fallback to mailer:', brevoError.message);
         return await this.sendViaMail(email, 'Email Verification - THE DIGITAL TRADING',
           this.getEmailVerificationTemplate(otp));
