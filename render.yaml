@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: thedigitaltrading
+    env: node
+    plan: free
+    buildCommand: 'cd server && npm install'
+    startCommand: 'cd server && node server.js'
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5001
+      - key: FRONTEND_URL
+        fromService: 
+          type: static_site
+          property: url
+      - key: CORS_ORIGIN
+        fromService:
+          type: static_site
+          property: url
+
+  - type: static_site
+    name: thedigitaltrading-client
+    staticPublishPath: ./build
+    buildCommand: 'cd client && npm install && npm run build'
+    envVars:
+      - key: REACT_APP_API_BASE_URL
+        fromService:
+          type: web
+          property: url
