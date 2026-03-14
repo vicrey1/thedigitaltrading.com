@@ -1,0 +1,239 @@
+// src/services/adminAPI.js
+import axios from 'axios';
+
+const API = axios.create({
+  baseURL: process.env.REACT_APP_API_BASE_URL + '/api/admin',
+});
+
+// Car Management API instance
+const CarAPI = axios.create({
+  baseURL: process.env.REACT_APP_API_BASE_URL + '/api/cars',
+});
+
+CarAPI.interceptors.request.use((config) => {
+  const token = localStorage.getItem('adminToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Add auth token to requests
+API.interceptors.request.use((config) => {
+  const token = localStorage.getItem('adminToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Add response interceptor to handle auth errors
+API.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      const errorCode = error.response?.data?.code;
+      console.warn('Admin API: 401 Unauthorized -', error.response?.data?.message || 'Token may be expired');
+      
+      // Handle specific token expiration errors
+      if (errorCode === 'TOKEN_EXPIRED' || errorCode === 'INVALID_TOKEN' || errorCode === 'AUTH_FAILED') {
+        console.log('Removing expired/invalid admin token');
+        localStorage.removeItem('adminToken');
+        // Redirect to admin login if not already there
+        if (!window.location.pathname.includes('/admin/login')) {
+          window.location.href = '/admin/login';
+        }
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+export const getUsers = async () => {
+  try {
+    const response = await API.get('/users');
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to fetch users';
+  }
+};
+
+export const updateUser = async (userId, updates) => {
+  try {
+    const response = await API.patch(`/users/${userId}`, updates);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to update user';
+  }
+};
+
+// Adjust a user's available balance atomically on the server
+export const adjustUserAvailableBalance = async (userId, amount, operation) => {
+  try {
+    const response = await API.patch(`/users/${userId}/available-balance`, { amount, operation });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to adjust available balance';
+  }
+};
+
+export const approveKYC = async (userId) => {
+  try {
+    const response = await API.post(`/users/${userId}/kyc/approve`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to approve KYC';
+  }
+};
+
+export const rejectKYC = async (userId, reason) => {
+  const response = await API.post(`/users/${userId}/kyc/reject`, { reason });
+  return response.data;
+};
+
+export const updateUserTier = async (userId, tier) => {
+  const response = await API.patch(`/users/${userId}/tier`, { tier });
+  return response.data;
+};
+
+export const updateUserRole = async (userId, role) => {
+  const response = await API.patch(`/users/${userId}/role`, { role });
+  return response.data;
+};
+
+export const getUserKeys = async (userId) => {
+  try {
+    const response = await API.get(`/users/${userId}/keys`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to fetch user keys';
+  }
+};
+
+export const sendAdminEmail = async ({ to, subject, html }) => {
+  try {
+    await API.post('/send-email', { to, subject, html });
+  } catch (error) {
+    throw error.response?.data?.message || error.message || 'Failed to send email';
+  }
+};
+
+// Mirror user API functions
+export const getUserPortfolio = async (userId) => {
+  try {
+    const response = await API.get(`/users/${userId}/portfolio`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to fetch user portfolio';
+  }
+};
+
+export const getUserProfile = async (userId) => {
+  try {
+    const response = await API.get(`/users/${userId}/profile`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to fetch user profile';
+  }
+};
+
+export const getUserKYC = async (userId) => {
+  try {
+    const response = await API.get(`/users/${userId}/kyc`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to fetch user KYC';
+  }
+};
+
+export const completeActiveInvestment = async (userId) => {
+  try {
+    const response = await API.post(`/users/${userId}/complete-active-investment`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to complete active investment';
+  }
+};
+
+export const continueCompletedInvestment = async (userId) => {
+  try {
+    const response = await API.post(`/users/${userId}/continue-completed-investment`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to continue completed investment';
+  }
+};
+
+// Car Management API calls
+export const getCars = async (params = {}) => {
+  try {
+    const response = await CarAPI.get('/', { params });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to fetch cars';
+  }
+};
+
+export const getCarById = async (carId) => {
+  try {
+    const response = await CarAPI.get(`/${carId}`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to fetch car';
+  }
+};
+
+export const createCar = async (carData) => {
+  try {
+    const response = await CarAPI.post('/', carData, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to create car';
+  }
+};
+
+export const updateCar = async (carId, carData) => {
+  try {
+    const response = await CarAPI.put(`/${carId}`, carData, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to update car';
+  }
+};
+
+export const deleteCar = async (carId) => {
+  try {
+    const response = await CarAPI.delete(`/${carId}`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to delete car';
+  }
+};
+
+export const toggleCarFeatured = async (carId) => {
+  try {
+    const response = await CarAPI.patch(`/${carId}/featured`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to toggle car featured status';
+  }
+};
+
+export const getCarStats = async () => {
+  try {
+    const response = await CarAPI.get('/admin/stats');
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to fetch car statistics';
+  }
+};
+
+// Add more admin API calls as needed

@@ -1,0 +1,16 @@
+# Node.js
+node_modules/
+.env
+.env.production
+/server/.env
+/server/.env.production
+/client/.env
+/server/dist/
+
+# React
+/client/build/
+/client/node_modules/
+
+# Miscellaneous
+*.log
+.DS_Store

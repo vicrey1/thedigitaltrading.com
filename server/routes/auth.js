@@ -1036,42 +1036,28 @@ router.post('/resend-otp', async (req, res) => {
     const verifyUrlFrontend = `${process.env.FRONTEND_URL}/verify-email/${pending.emailVerificationToken}`;
     console.log('[RESEND OTP] Sending new OTP for', email, 'Backend URL:', verifyUrlBackend, 'Frontend URL:', verifyUrlFrontend);
     
-    let otpSent = false;
     try {
       await brevoOtpService.sendRegistrationOTP(email, emailOtp, verifyUrlFrontend);
       console.log('[RESEND OTP] OTP sent via Brevo to:', email);
-      otpSent = true;
-    } catch (brevoErr) {
-      console.error('[RESEND OTP] Error sending via Brevo:', brevoErr.message || brevoErr);
-      // Fallback to sendMail function which tries Brevo first, then nodemailer
-      try {
-        await sendMail({
-          to: email,
-          subject: 'Verify Your Email',
-          html: `<div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px 24px;background:#18181b;border-radius:16px;color:#fff;text-align:center;">
-            <h2 style="color:#FFD700;">Verify Your Email</h2>
-            <p style="margin:24px 0;">Open the frontend verification page below to verify your email address and complete registration, or use the OTP code shown.</p>
-            <a href="${verifyUrlFrontend}" style="display:inline-block;padding:12px 24px;background:#444;color:#fff;border-radius:6px;text-decoration:none;margin:8px 0;font-size:13px;">Open frontend verification page</a>
-            <p style="margin:24px 0;font-size:18px;">Or enter this OTP code: <span style="font-weight:bold;letter-spacing:2px;">${emailOtp}</span></p>
-            <p style="margin-top:24px;font-size:13px;color:#aaa;">If you did not create an account, you can ignore this email.</p>
-          </div>`
-        });
-        console.log('[RESEND OTP] Email sent via sendMail fallback to:', email);
-        otpSent = true;
-      } catch (fallbackErr) {
-        console.error('[RESEND OTP] Fallback email also failed:', fallbackErr.message || fallbackErr);
-        throw fallbackErr;
-      }
+    } catch (err) {
+      console.error('[RESEND OTP] Error sending via Brevo:', err);
+      // Fallback to original mailer
+      await sendMail({
+        to: email,
+        subject: 'Verify Your Email',
+        html: `<div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px 24px;background:#18181b;border-radius:16px;color:#fff;text-align:center;">
+          <h2 style="color:#FFD700;">Verify Your Email</h2>
+          <p style="margin:24px 0;">Open the frontend verification page below to verify your email address and complete registration, or use the OTP code shown.</p>
+          <a href="${verifyUrlFrontend}" style="display:inline-block;padding:12px 24px;background:#444;color:#fff;border-radius:6px;text-decoration:none;margin:8px 0;font-size:13px;">Open frontend verification page</a>
+          <p style="margin:24px 0;font-size:18px;">Or enter this OTP code: <span style="font-weight:bold;letter-spacing:2px;">${emailOtp}</span></p>
+          <p style="margin-top:24px;font-size:13px;color:#aaa;">If you did not create an account, you can ignore this email.</p>
+        </div>`
+      });
     }
-    
-    if (otpSent) {
-      res.json({ message: 'A new OTP has been sent to your email.' });
-    } else {
-      throw new Error('Failed to send OTP through both primary and fallback channels');
-    }
+    res.json({ message: 'A new OTP has been sent to your email.' });
   } catch (err) {
-    console.error('[RESEND OTP] Fatal error:', err.message || err);
-    res.status(500).json({ message: 'Server error: ' + (err.message || 'Failed to resend OTP') });
+    console.error('Resend OTP error:', err);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

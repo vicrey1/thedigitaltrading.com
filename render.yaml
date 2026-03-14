@@ -1,30 +1,60 @@
 services:
   - type: web
-    name: thedigitaltrading
+    name: thedigitaltrading-api
     env: node
-    plan: free
-    buildCommand: 'cd server && npm install'
-    startCommand: 'cd server && node server.js'
+    buildCommand: cd server && npm install
+    startCommand: cd server && npm start
     envVars:
+      - key: NODE_VERSION
+        value: 18
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 5001
-      - key: FRONTEND_URL
-        fromService: 
-          type: static_site
-          property: url
+        value: 10000
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: EMAIL_HOST
+        sync: false
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
+      - key: EMAIL_PORT
+        value: 465
+      - key: EMAIL_SECURE
+        value: true
+      - key: EMAIL_FROM
+        sync: false
       - key: CORS_ORIGIN
-        fromService:
-          type: static_site
-          property: url
+        value: https://www.thedigitaltrading.com,https://thedigitaltrading.com,https://api.thedigitaltrading.com
+      - key: FRONTEND_URL
+        value: https://www.thedigitaltrading.com
 
-  - type: static_site
-    name: thedigitaltrading-client
-    staticPublishPath: ./build
-    buildCommand: 'cd client && npm install && npm run build'
+  - type: web
+    name: thedigitaltrading-frontend
+    env: static
+    buildCommand: cd client && npm install && npm run build
+    staticPublishPath: ./client/build
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
+      - key: NODE_VERSION
+        value: 18
+      - key: REACT_APP_API_URL
+        value: https://api.thedigitaltrading.com
       - key: REACT_APP_API_BASE_URL
-        fromService:
-          type: web
-          property: url
+        value: https://api.thedigitaltrading.com
+      - key: REACT_APP_SOCKET_URL
+        value: wss://api.thedigitaltrading.com
+      - key: REACT_APP_WS_BASE_URL
+        value: wss://api.thedigitaltrading.com
+      - key: REACT_APP_FRONTEND_URL
+        value: https://www.thedigitaltrading.com
+      - key: REACT_APP_ENABLE_ADMIN_CARS
+        value: true

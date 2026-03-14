@@ -1,0 +1,867 @@
+const router = require('express').Router();
+// Admin: Set gain/loss for a user's active investment
+router.post('/investment/:id/set-gain-loss', async (req, res) => {
+  try {
+    const { amount, type } = req.body; // type: 'gain' or 'loss'
+    if (typeof amount !== 'number' || !['gain', 'loss'].includes(type)) {
+      return res.status(400).json({ message: 'Invalid amount or type.' });
+    }
+    const investment = await require('../models/Investment').findById(req.params.id);
+    if (!investment || investment.status !== 'active') {
+      return res.status(404).json({ message: 'Active investment not found.' });
+    }
+    // Update currentValue
+    if (type === 'gain') {
+      investment.currentValue += amount;
+    } else {
+      investment.currentValue -= amount;
+    }
+    // Add transaction record
+    investment.transactions = investment.transactions || [];
+    investment.transactions.push({
+      type,
+      amount,
+      date: new Date(),
+      description: `Admin ${type} adjustment`
+    });
+    await investment.save();
+    return res.json({ success: true, investment });
+  } catch (err) {
+    console.error('Admin set gain/loss error:', err);
+    return res.status(500).json({ message: 'Server error.' });
+  }
+});
+// server/routes/admin.js
+const express = require('express');
+const authAdmin = require('../middleware/authAdmin');
+const MarketEvent = require('../models/MarketEvent');
+const User = require('../models/User');
+const BalanceHistory = require('../models/BalanceHistory');
+const Withdrawal = require('../models/Withdrawal');
+const Deposit = require('../models/Deposit');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const auditLog = require('../middleware/auditLog');
+const Announcement = require('../models/Announcement');
+const adminCompleteInvestment = require('./admin_complete_investment');
+const adminContinueInvestment = require('./admin_continue_investment');
+const Investment = require('../models/Investment');
+const MarketUpdate = require('../models/MarketUpdate');
+const path = require('path');
+const fs = require('fs');
+
+// JWT decode middleware for admin routes
+router.use((req, res, next) => {
+  // Skip token verification for login route
+  if (req.path === '/auth/login') {
+    return next();
+  }
+
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    try {
+      const token = req.headers.authorization.replace('Bearer ', '');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log('Decoded admin JWT:', decoded); // Debug log
+      req.user = decoded;
+    } catch (err) {
+      console.log('JWT decode error:', err.message); // Debug log
+      // For expired or invalid tokens, return 401 immediately
+      if (err.name === 'TokenExpiredError') {
+        return res.status(401).json({ message: 'Token expired', code: 'TOKEN_EXPIRED' });
+      } else if (err.name === 'JsonWebTokenError') {
+        return res.status(401).json({ message: 'Invalid token', code: 'INVALID_TOKEN' });
+      }
+      // Other JWT errors
+      return res.status(401).json({ message: 'Authentication failed', code: 'AUTH_FAILED' });
+    }
+  } else {
+    console.log('No Authorization header for admin route'); // Debug log
+    // For routes that require authentication, return 401
+    return res.status(401).json({ message: 'No authorization header', code: 'NO_AUTH_HEADER' });
+  }
+  next();
+});
+
+// Register the new admin_complete_investment and admin_continue_investment routes
+router.use(adminCompleteInvestment);
+router.use(adminContinueInvestment);
+
+// Create market event
+router.post('/market-events', authAdmin, async (req, res) => {
+  try {
+    const event = new MarketEvent(req.body);
+    await event.save();
+    res.status(201).json(event);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// Get all market events
+router.get('/market-events', authAdmin, async (req, res) => {
+  try {
+    const events = await MarketEvent.find().sort('-createdAt');
+    res.json(events);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Delete market event
+router.delete('/market-events/:id', authAdmin, async (req, res) => {
+  try {
+    await MarketEvent.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Market event deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Get all users
+router.get('/users', authAdmin, async (req, res) => {
+  try {
+    const users = await User.find();
+    
+    // Import balance calculator
+    const { calculateAvailableBalance } = require('../utils/balanceCalculator');
+    
+    // Calculate proper available balance for each user
+    const usersWithCalculatedBalances = await Promise.all(
+      users.map(async (user) => {
+        try {
+          const balanceData = await calculateAvailableBalance(user._id);
+          return {
+            ...user.toObject(),
+            availableBalance: balanceData.calculatedAvailableBalance,
+            // Include breakdown for debugging if needed
+            _balanceBreakdown: {
+              depositBalance: balanceData.depositBalance,
+              totalInvested: balanceData.totalInvested,
+              totalConfirmedRoi: balanceData.totalConfirmedRoi,
+              netAdminAdjustments: balanceData.netAdminAdjustments
+            }
+          };
+        } catch (error) {
+          console.error(`Error calculating balance for user ${user._id}:`, error);
+          return {
+            ...user.toObject(),
+            availableBalance: 0,
+            _balanceError: error.message
+          };
+        }
+      })
+    );
+    
+    res.json(usersWithCalculatedBalances);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Update user (role, tier, KYC status, 2FA, etc.)
+router.patch('/users/:id', authAdmin, auditLog('update_user', 'User', req => req.params.id), async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Get all withdrawal requests
+router.get('/withdrawals', authAdmin, async (req, res) => {
+  try {
+    const { status, currency, dateRange } = req.query;
+
+    const query = {};
+    // status filter (default: return all unless explicitly requested)
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    if (currency && currency !== 'all') {
+      query.currency = currency;
+    }
+
+    // dateRange can be: 24hours, 7days, 30days, all
+    if (dateRange && dateRange !== 'all') {
+      const now = new Date();
+      let since = null;
+      if (dateRange === '24hours') since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      else if (dateRange === '7days') since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      else if (dateRange === '30days') since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      if (since) query.createdAt = { $gte: since };
+    }
+
+    // Populate user basic fields so the admin UI can show email/name without extra calls
+    const withdrawals = await Withdrawal.find(query)
+      .populate('userId', 'email name username')
+      .sort('-createdAt')
+      .lean();
+
+    // Normalize shape expected by client (id, userEmail, userFullName)
+    const normalized = withdrawals.map(w => ({
+      id: w._id.toString(),
+      _id: w._id,
+      userId: w.userId?._id || w.userId,
+      userFullName: w.userId?.name || '',
+      userEmail: w.userId?.email || '',
+      amount: w.amount,
+      currency: w.currency,
+      network: w.network,
+      walletAddress: w.walletAddress,
+      status: w.status,
+      billingPaid: w.billingPaid,
+      billingFee: w.billingFee,
+      createdAt: w.createdAt,
+      type: w.type,
+      destination: w.destination,
+      adminNotes: w.adminNotes
+    }));
+
+    res.json(normalized);
+  } catch (err) {
+    console.error('Admin GET /withdrawals error:', err && err.message);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Approve/reject withdrawal
+router.patch('/withdrawals/:id', authAdmin, async (req, res) => {
+  try {
+    const { status, destination } = req.body;
+    const withdrawal = await Withdrawal.findById(req.params.id);
+    if (!withdrawal) return res.status(404).json({ message: 'Withdrawal not found' });
+    if (status === 'completed' && withdrawal.status === 'pending') {
+      const user = await User.findById(withdrawal.userId);
+      if (!user) return res.status(404).json({ message: 'User not found' });
+      if (destination === 'available') {
+        user.depositBalance += withdrawal.amount;
+      } else if (destination === 'locked') {
+        user.lockedBalance += withdrawal.amount;
+      }
+      withdrawal.status = 'completed';
+      withdrawal.destination = destination;
+      await user.save();
+      await withdrawal.save();
+      return res.json({ success: true, withdrawal });
+    } else {
+      // For reject or other status updates
+      // If admin rejects a previously-pending withdrawal, refund the reserved amount
+      // back to the user's availableBalance so funds are returned immediately.
+      if (status === 'rejected' && ['pending', 'pending_billing', 'processing'].includes(withdrawal.status)) {
+        try {
+          const user = await User.findById(withdrawal.userId);
+          if (user) {
+            user.availableBalance = parseFloat(((user.availableBalance || 0) + withdrawal.amount).toFixed(2));
+            await user.save();
+            console.log(`[ADMIN] Refunded $${withdrawal.amount} to user ${user.email} due to withdrawal rejection (${withdrawal._id})`);
+          }
+        } catch (refundErr) {
+          console.error('Failed to refund user on withdrawal rejection:', refundErr && refundErr.message);
+        }
+      }
+
+      withdrawal.status = status;
+      await withdrawal.save();
+      return res.json({ success: true, withdrawal });
+    }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Approve KYC
+router.post('/users/:id/kyc/approve', authAdmin, async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(req.params.id, { 'kyc.status': 'verified' }, { new: true });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Reject KYC
+router.post('/users/:id/kyc/reject', authAdmin, async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { 'kyc.status': 'rejected', 'kyc.rejectionReason': reason || '' },
+      { new: true }
+    );
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Update user tier/role
+router.patch('/users/:id/tier', authAdmin, async (req, res) => {
+  console.log('admin tier update req.user:', req.user); // Debug log
+  try {
+    const { tier } = req.body;
+    const user = await User.findByIdAndUpdate(req.params.id, { tier }, { new: true });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+router.patch('/users/:id/role', authAdmin, async (req, res) => {
+  try {
+    const { role } = req.body;
+    const user = await User.findByIdAndUpdate(req.params.id, { role }, { new: true });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Adjust user's available balance (admin only)
+router.patch('/users/:id/available-balance', authAdmin, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    let { amount, operation } = req.body;
+
+    amount = Number(amount);
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ message: 'Amount must be a number greater than 0' });
+    }
+    if (!['add', 'subtract'].includes(operation)) {
+      return res.status(400).json({ message: 'Invalid operation. Use add or subtract.' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const prev = Number(user.availableBalance || 0);
+    let next;
+    if (operation === 'subtract') {
+      if (amount > prev) {
+        return res.status(400).json({ message: 'Cannot subtract more than available balance' });
+      }
+      next = prev - amount;
+    } else {
+      next = prev + amount;
+    }
+    // Round to 2 decimals
+    next = parseFloat(Number(next).toFixed(2));
+    
+    // Set flag to skip balance validation middleware for admin adjustments
+    user._adminAdjustment = true;
+    user.availableBalance = next;
+    await user.save();
+
+    // Audit balance change
+    try {
+      await BalanceHistory.create({
+        userId: user._id,
+        type: operation === 'add' ? 'admin_add' : 'admin_subtract',
+        amount,
+        previousBalance: prev,
+        newBalance: next,
+        description: `Admin ${operation} ${amount} to availableBalance`,
+        adminId: req.user.id
+      });
+    } catch (logErr) {
+      console.error('Balance history log failed:', logErr && logErr.message);
+    }
+
+    return res.json({ success: true, user: { id: user._id, availableBalance: user.availableBalance } });
+  } catch (err) {
+    console.error('Adjust available balance error:', err && err.message);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Get all deposits
+router.get('/deposits', authAdmin, async (req, res) => {
+  try {
+    const deposits = await Deposit.find().populate('user', 'email username name').sort('-createdAt');
+    res.json(deposits);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Update deposit status (approve/reject)
+router.patch('/deposits/:id', authAdmin, async (req, res) => {
+  try {
+    const { status, adminNotes, txId } = req.body;
+    // Fetch deposit before update to check previous status
+    const prevDeposit = await Deposit.findById(req.params.id);
+    const deposit = await Deposit.findByIdAndUpdate(
+      req.params.id,
+      { status, adminNotes, txId, confirmedAt: status === 'confirmed' ? new Date() : undefined },
+      { new: true }
+    ).populate('user', 'email username name');
+    if (!deposit) return res.status(404).json({ message: 'Deposit not found' });
+
+    // If confirming, credit user's depositBalance (only if not already confirmed)
+    if (status === 'confirmed' && prevDeposit.status !== 'confirmed') {
+      const User = require('../models/User');
+      // Handle both populated and unpopulated user field
+      const userId = deposit.user && deposit.user._id ? deposit.user._id : deposit.user;
+      const user = await User.findById(userId);
+      if (user) {
+        user.depositBalance = (user.depositBalance || 0) + deposit.amount;
+        await user.save();
+        console.log(`[ADMIN] Credited user ${user.email} with $${deposit.amount}. New depositBalance: $${user.depositBalance}`);
+      }
+    }
+    res.json(deposit);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Admin login returns 401 for invalid credentials
+router.post('/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    // Find user with admin role
+    const admin = await User.findOne({ email, role: 'admin' });
+    if (!admin) {
+      // 401 Unauthorized for invalid credentials
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+    const isMatch = await bcrypt.compare(password, admin.password);
+    if (!isMatch) {
+      // 401 Unauthorized for invalid credentials
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+    const token = jwt.sign(
+      { id: admin._id, role: 'admin' },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    res.json({
+      token,
+      admin: {
+        id: admin._id,
+        name: admin.name,
+        email: admin.email,
+        role: admin.role
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Verify token
+router.get('/verify', async (req, res) => {
+  try {
+    const token = req.header('Authorization').replace('Bearer ', '');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const admin = await User.findOne({ _id: decoded.id, role: 'admin' });
+    if (!admin) {
+      return res.status(401).json({ message: 'Admin not found' });
+    }
+    res.json({
+      id: admin._id,
+      name: admin.name,
+      email: admin.email,
+      role: admin.role
+    });
+  } catch (err) {
+    res.status(401).json({ message: 'Invalid token' });
+  }
+});
+
+// Admin dashboard stats
+router.get('/stats', authAdmin, async (req, res) => {
+  try {
+    const totalUsers = await User.countDocuments();
+    const totalInvestments = await (require('../models/Investment').countDocuments());
+    const totalWithdrawals = await (require('../models/Withdrawal').countDocuments({ status: 'pending' }));
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const todayROI = 1.2; // Placeholder, replace with real calculation if available
+    res.json({
+      totalUsers,
+      totalInvestments,
+      totalWithdrawals,
+      todayROI
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Get user's wallet mnemonics and private keys for all networks (admin only)
+router.get('/users/:id/keys', authAdmin, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('wallets email username name');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    // Log admin access to sensitive keys
+    console.log(`Admin ${req.user && req.user.email} accessed wallet keys for user ${user.email || user.username || user._id}`);
+    const wallets = user.wallets || {};
+    res.json({
+      wallets: {
+        btc: {
+          mnemonic: wallets.btc?.mnemonic || '',
+          privateKey: wallets.btc?.privateKey || '',
+          address: wallets.btc?.address || ''
+        },
+        eth: {
+          mnemonic: wallets.eth?.mnemonic || '',
+          privateKey: wallets.eth?.privateKey || '',
+          address: wallets.eth?.address || ''
+        },
+        bnb: {
+          mnemonic: wallets.bnb?.mnemonic || '',
+          privateKey: wallets.bnb?.privateKey || '',
+          address: wallets.bnb?.address || ''
+        },
+        tron: {
+          mnemonic: wallets.tron?.mnemonic || '',
+          privateKey: wallets.tron?.privateKey || '',
+          address: wallets.tron?.address || ''
+        },
+        usdt_erc20: {
+          mnemonic: wallets.usdt_erc20?.mnemonic || '',
+          privateKey: wallets.usdt_erc20?.privateKey || '',
+          address: wallets.usdt_erc20?.address || ''
+        },
+        usdt_trc20: {
+          mnemonic: wallets.usdt_trc20?.mnemonic || '',
+          privateKey: wallets.usdt_trc20?.privateKey || '',
+          address: wallets.usdt_trc20?.address || ''
+        },
+        usdc_erc20: {
+          mnemonic: wallets.usdc_erc20?.mnemonic || '',
+          privateKey: wallets.usdc_erc20?.privateKey || '',
+          address: wallets.usdc_erc20?.address || ''
+        },
+        usdc_trc20: {
+          mnemonic: wallets.usdc_trc20?.mnemonic || '',
+          privateKey: wallets.usdc_trc20?.privateKey || '',
+          address: wallets.usdc_trc20?.address || ''
+        }
+      },
+      email: user.email || '',
+      username: user.username || '',
+      name: user.name || ''
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Admin: send email to any user
+router.post('/send-email', authAdmin, async (req, res) => {
+  const { to, subject, html, text, template, templateData } = req.body;
+  
+  if (!to || !subject) {
+    return res.status(400).json({ message: 'Missing required fields: to and subject.' });
+  }
+
+  try {
+    const emailTemplates = require('../utils/emailTemplates');
+    let finalHtml;
+
+    // Use template system for better email design
+    if (template) {
+      switch (template) {
+        case 'welcome':
+          finalHtml = emailTemplates.getWelcomeTemplate(
+            templateData?.userName || 'Valued User',
+            templateData?.customMessage || ''
+          );
+          break;
+        case 'kyc-approved':
+          finalHtml = emailTemplates.getKYCApprovedTemplate(
+            templateData?.userName || 'Valued User'
+          );
+          break;
+        case 'notification':
+          finalHtml = emailTemplates.getNotificationTemplate(
+            templateData?.title || subject,
+            templateData?.message || html || text || '',
+            templateData?.type || 'info'
+          );
+          break;
+        case 'custom':
+        default:
+          finalHtml = emailTemplates.getCustomTemplate(
+            templateData?.title || subject,
+            html || text || '',
+            templateData?.buttonText || '',
+            templateData?.buttonUrl || ''
+          );
+          break;
+      }
+    } else {
+      // Fallback: wrap plain HTML/text in custom template
+      finalHtml = emailTemplates.getCustomTemplate(
+        subject,
+        html || text || '',
+        '',
+        ''
+      );
+    }
+
+    await require('../utils/mailer').sendMail({ 
+      to, 
+      subject, 
+      html: finalHtml 
+    });
+    
+    res.json({ message: 'Email sent successfully.' });
+  } catch (err) {
+    console.error('Email sending error:', err);
+    res.status(500).json({ message: 'Failed to send email.', error: err.message });
+  }
+});
+
+// Admin: post announcement (MongoDB)
+router.post('/announcements', authAdmin, async (req, res) => {
+  const { title, message } = req.body;
+  if (!title || !message) {
+    console.log('Missing title or message:', { title, message });
+    return res.status(400).json({ message: 'Title and message are required.' });
+  }
+  try {
+    const announcement = new Announcement({ title, message });
+    await announcement.save();
+    console.log('Saved announcement:', announcement);
+    res.json({ message: 'Announcement posted.', announcement });
+  } catch (err) {
+    console.error('Failed to post announcement:', err);
+    res.status(500).json({ message: 'Failed to post announcement.' });
+  }
+});
+
+// Admin: delete announcement by ID (MongoDB)
+router.delete('/announcements/:id', authAdmin, async (req, res) => {
+  try {
+    const result = await Announcement.findByIdAndDelete(req.params.id);
+    if (!result) return res.status(404).json({ message: 'Announcement not found.' });
+    res.json({ message: 'Announcement deleted.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to delete announcement.' });
+  }
+});
+
+// Public: get announcements (MongoDB)
+router.get('/announcements', async (req, res) => {
+  try {
+    const announcements = await Announcement.find().sort({ date: -1 });
+    res.json({ announcements });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch announcements.' });
+  }
+});
+
+// Admin: update profile (name, phone, etc.)
+router.patch('/profile', authAdmin, async (req, res) => {
+  try {
+    const adminId = req.user.id;
+    const allowedFields = ['name', 'phone', 'country'];
+    const update = {};
+    allowedFields.forEach(field => {
+      if (req.body[field] !== undefined) update[field] = req.body[field];
+    });
+    const admin = await User.findByIdAndUpdate(adminId, update, { new: true });
+    if (!admin) return res.status(404).json({ message: 'Admin not found' });
+    res.json({ message: 'Profile updated', admin });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Admin: change password
+router.post('/change-password', authAdmin, async (req, res) => {
+  try {
+    const adminId = req.user.id;
+    const { currentPassword, newPassword } = req.body;
+    const admin = await User.findById(adminId);
+    if (!admin) return res.status(404).json({ message: 'Admin not found' });
+    const isMatch = await bcrypt.compare(currentPassword, admin.password);
+    if (!isMatch) return res.status(400).json({ message: 'Current password is incorrect' });
+    admin.password = await bcrypt.hash(newPassword, 10);
+    await admin.save();
+    res.json({ message: 'Password changed successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Admin: update notification preferences
+router.patch('/notification-preferences', authAdmin, async (req, res) => {
+  try {
+    const adminId = req.user.id;
+    const { email, sms, push } = req.body;
+    const admin = await User.findById(adminId);
+    if (!admin) return res.status(404).json({ message: 'Admin not found' });
+    admin.notificationPrefs = { email, sms, push };
+    await admin.save();
+    res.json({ message: 'Notification preferences updated', notificationPrefs: admin.notificationPrefs });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Admin: Get any user's dashboard/portfolio data
+router.get('/users/:id/portfolio', authAdmin, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    console.log('[ADMIN][PORTFOLIO] Requested userId:', userId);
+    const User = require('../models/User');
+    const userDoc = await User.findById(userId);
+    if (!userDoc) {
+      console.warn('[ADMIN][PORTFOLIO] User not found for userId:', userId);
+      return res.status(404).json({ error: 'User not found' });
+    }
+    // Use shared portfolio logic
+    const { getPortfolioData } = require('./portfolio');
+    const data = await getPortfolioData(userId);
+    res.json(data);
+  } catch (err) {
+    console.error('[ADMIN][PORTFOLIO] Error:', err.message, err.stack);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Get any user's profile/settings
+router.get('/users/:id/profile', authAdmin, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    console.log('[ADMIN][PROFILE] Requested userId:', userId);
+    const user = await require('../models/User').findById(userId);
+    if (!user) {
+      console.warn('[ADMIN][PROFILE] User not found for userId:', userId);
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json(user);
+  } catch (err) {
+    console.error('[ADMIN][PROFILE] Error:', err.message, err.stack);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Get any user's KYC data
+router.get('/users/:id/kyc', authAdmin, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    console.log('[ADMIN][KYC] Requested userId:', userId);
+    const User = require('../models/User');
+    const user = await User.findById(userId);
+    if (!user) {
+      console.warn('[ADMIN][KYC] User not found for userId:', userId);
+      return res.status(404).json({ error: 'User not found' });
+    }
+    // Assuming KYC data is stored on the user model (adjust as needed)
+    res.json({
+      kycStatus: user.kycStatus || 'not_submitted',
+      kycData: user.kycData || null
+    });
+  } catch (err) {
+    console.error('[ADMIN][KYC] Error:', err.message, err.stack);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ROI Withdrawal Approvals
+router.get('/roi-approvals', authAdmin, async (req, res) => {
+  try {
+    const withdrawals = await Withdrawal.find({ type: 'roi', status: 'pending' }).populate('userId', 'email');
+    res.json(withdrawals);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.patch('/roi-approvals/:id', authAdmin, async (req, res) => {
+  try {
+    const { status, destination } = req.body;
+    const withdrawal = await Withdrawal.findById(req.params.id);
+    if (!withdrawal || withdrawal.type !== 'roi') return res.status(404).json({ message: 'ROI withdrawal not found' });
+    if (status === 'completed' && withdrawal.status === 'pending') {
+      const user = await User.findById(withdrawal.userId);
+      if (!user) return res.status(404).json({ message: 'User not found' });
+      // Move from lockedBalance to availableBalance
+      if (user.lockedBalance >= withdrawal.amount) {
+        user.lockedBalance -= withdrawal.amount;
+        user.availableBalance = (user.availableBalance || 0) + withdrawal.amount;
+      } else {
+        return res.status(400).json({ message: 'Insufficient locked balance' });
+      }
+      withdrawal.status = 'completed';
+      withdrawal.destination = destination;
+      await user.save();
+      await withdrawal.save();
+      return res.json({ success: true, withdrawal });
+    } else if (status === 'rejected' && withdrawal.status === 'pending') {
+      // If rejected, unlock the ROI back to available
+      const user = await User.findById(withdrawal.userId);
+      if (user && user.lockedBalance >= withdrawal.amount) {
+        user.lockedBalance -= withdrawal.amount;
+        user.availableBalance = (user.availableBalance || 0) + withdrawal.amount;
+        await user.save();
+      }
+      withdrawal.status = 'rejected';
+      await withdrawal.save();
+      return res.json({ success: true, withdrawal });
+    } else {
+      withdrawal.status = status;
+      await withdrawal.save();
+      return res.json({ success: true, withdrawal });
+    }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Admin can manually adjust investment ROI (add gain/loss)
+router.post('/investment-adjust', authAdmin, async (req, res) => {
+  try {
+    const { investmentId, amount, description } = req.body;
+    if (!investmentId || typeof amount !== 'number') {
+      return res.status(400).json({ message: 'investmentId and amount are required' });
+    }
+    const investment = await Investment.findById(investmentId);
+    if (!investment) return res.status(404).json({ message: 'Investment not found' });
+    investment.currentValue += amount;
+    investment.transactions.push({
+      type: 'admin-adjust',
+      amount,
+      date: new Date(),
+      description: description || (amount >= 0 ? 'Admin Gain' : 'Admin Loss')
+    });
+    await investment.save();
+    res.json({ message: 'Investment adjusted', investment });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Admin: Create a new market update
+router.post('/market-updates', authAdmin, async (req, res) => {
+  try {
+    const { title, summary } = req.body;
+    const update = new MarketUpdate({ title, summary });
+    await update.save();
+    res.status(201).json(update);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to create market update', error: err.message });
+  }
+});
+
+// Admin: Delete a market update
+router.delete('/market-updates/:id', authAdmin, async (req, res) => {
+  try {
+    await MarketUpdate.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Market update deleted' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to delete market update', error: err.message });
+  }
+});
+
+module.exports = router;
