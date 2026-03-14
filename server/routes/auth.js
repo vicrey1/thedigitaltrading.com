@@ -1021,42 +1021,55 @@ router.post('/verify-email-otp', async (req, res) => {
 router.post('/resend-otp', async (req, res) => {
   try {
     const { email } = req.body;
-    if (!email) return res.status(400).json({ message: 'Email is required.' });
+    console.log('[RESEND OTP] Request received for email:', email);
+    
+    if (!email) {
+      console.log('[RESEND OTP] Email is required');
+      return res.status(400).json({ message: 'Email is required.' });
+    }
+    
     const pending = await PendingUser.findOne({ email });
-    if (!pending) return res.status(404).json({ message: 'No pending registration found for this email.' });
+    if (!pending) {
+      console.log('[RESEND OTP] No pending registration found for:', email);
+      return res.status(404).json({ message: 'No pending registration found for this email.' });
+    }
+    
+    console.log('[RESEND OTP] Found pending user, generating new OTP');
+    
     // Generate new OTP and update expiry
     const emailOtp = brevoOtpService.generateOTP();
     const expiry = Date.now() + 24 * 60 * 60 * 1000;
     pending.emailOtp = emailOtp;
     pending.emailOtpExpiry = expiry;
+    
     await pending.save();
+    console.log('[RESEND OTP] OTP saved to database');
+    
     // Use backend URL for the verification link to avoid frontend CORS issues
     const backendBase = process.env.BACKEND_URL || process.env.API_BASE_URL || `${req.protocol}://${req.get('host')}`;
     const verifyUrlBackend = `${backendBase}/api/auth/verify-email/${pending.emailVerificationToken}`;
     const verifyUrlFrontend = `${process.env.FRONTEND_URL}/verify-email/${pending.emailVerificationToken}`;
-    console.log('[RESEND OTP] Sending new OTP for', email, 'Backend URL:', verifyUrlBackend, 'Frontend URL:', verifyUrlFrontend);
+    console.log('[RESEND OTP] URLs prepared - Backend:', verifyUrlBackend, 'Frontend:', verifyUrlFrontend);
     
     try {
+      console.log('[RESEND OTP] Attempting to send via brevoOtpService');
       await brevoOtpService.sendRegistrationOTP(email, emailOtp, verifyUrlFrontend);
-      console.log('[RESEND OTP] OTP sent via Brevo to:', email);
+      console.log('[RESEND OTP] OTP sent successfully');
     } catch (err) {
-      console.error('[RESEND OTP] Error sending via Brevo:', err);
-      // Fallback to original mailer
-      await sendMail({
-        to: email,
-        subject: 'Verify Your Email',
-        html: `<div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px 24px;background:#18181b;border-radius:16px;color:#fff;text-align:center;">
-          <h2 style="color:#FFD700;">Verify Your Email</h2>
-          <p style="margin:24px 0;">Open the frontend verification page below to verify your email address and complete registration, or use the OTP code shown.</p>
-          <a href="${verifyUrlFrontend}" style="display:inline-block;padding:12px 24px;background:#444;color:#fff;border-radius:6px;text-decoration:none;margin:8px 0;font-size:13px;">Open frontend verification page</a>
-          <p style="margin:24px 0;font-size:18px;">Or enter this OTP code: <span style="font-weight:bold;letter-spacing:2px;">${emailOtp}</span></p>
-          <p style="margin-top:24px;font-size:13px;color:#aaa;">If you did not create an account, you can ignore this email.</p>
-        </div>`
-      });
+      console.error('[RESEND OTP] Error from brevoOtpService:', err.message);
+      console.error('[RESEND OTP] Stack:', err.stack);
+      // The service handles fallback internally, but log it
+      if (err.message.includes('Failed to send')) {
+        console.error('[RESEND OTP] Both Brevo and fallback mailer failed');
+        return res.status(500).json({ message: 'Failed to send OTP. Please try again later.' });
+      }
     }
+    
+    console.log('[RESEND OTP] Response sent: OTP sent successfully');
     res.json({ message: 'A new OTP has been sent to your email.' });
   } catch (err) {
-    console.error('Resend OTP error:', err);
+    console.error('[RESEND OTP] Fatal error:', err.message);
+    console.error('[RESEND OTP] Stack:', err.stack);
     res.status(500).json({ message: 'Server error' });
   }
 });

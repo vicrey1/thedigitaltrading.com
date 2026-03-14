@@ -1,17 +1,40 @@
 // server/utils/brevoOtpService.js
 const brevo = require('@getbrevo/brevo');
-
-// Initialize Brevo API client
-const apiInstance = new brevo.TransactionalEmailsApi();
-
-// Set API key
-apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
+const { sendMail } = require('./mailer');
 
 class BrevoOtpService {
   constructor() {
-    this.apiInstance = apiInstance;
+    this.apiInstance = null;
     this.senderEmail = process.env.EMAIL_FROM || "noreply@thedigitaltrading.com";
     this.senderName = "THE DIGITAL TRADING";
+    this.initializeBrevo();
+  }
+
+  initializeBrevo() {
+    try {
+      if (!process.env.BREVO_API_KEY || process.env.BREVO_API_KEY === 'your_brevo_api_key_here') {
+        console.warn('[BREVO] API key not configured, using fallback mailer');
+        this.brevoAvailable = false;
+        return;
+      }
+      
+      this.apiInstance = new brevo.TransactionalEmailsApi();
+      if (this.apiInstance.setApiKey) {
+        this.apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
+      } else {
+        // Alternative: set authentication directly
+        this.apiInstance.authentications = {
+          apiKey: {
+            apiKey: process.env.BREVO_API_KEY
+          }
+        };
+      }
+      this.brevoAvailable = true;
+      console.log('[BREVO] API initialized successfully');
+    } catch (error) {
+      console.error('[BREVO] Failed to initialize Brevo API:', error);
+      this.brevoAvailable = false;
+    }
   }
 
   // Generate a 6-digit OTP
@@ -21,86 +44,151 @@ class BrevoOtpService {
 
   // Send registration OTP
   async sendRegistrationOTP(email, otp, verificationUrl) {
-    const sendSmtpEmail = new brevo.SendSmtpEmail();
-    
-    sendSmtpEmail.subject = "Verify Your Email - THE DIGITAL TRADING";
-    sendSmtpEmail.htmlContent = this.getRegistrationTemplate(otp, verificationUrl);
-    sendSmtpEmail.sender = { name: this.senderName, email: this.senderEmail };
-    sendSmtpEmail.to = [{ email: email }];
-    
-    // Add tags for tracking
-    sendSmtpEmail.tags = ["registration", "otp"];
-    
     try {
-      const result = await this.apiInstance.sendTransacEmail(sendSmtpEmail);
-      console.log('Registration OTP sent via Brevo:', result);
-      return result;
+      if (!this.brevoAvailable || !this.apiInstance) {
+        console.log('[RESEND OTP] Brevo not available, using fallback mailer');
+        return await this.sendViaMail(email, 'Verify Your Email - THE DIGITAL TRADING', 
+          this.getRegistrationTemplate(otp, verificationUrl));
+      }
+
+      const sendSmtpEmail = new brevo.SendSmtpEmail();
+      
+      sendSmtpEmail.subject = "Verify Your Email - THE DIGITAL TRADING";
+      sendSmtpEmail.htmlContent = this.getRegistrationTemplate(otp, verificationUrl);
+      sendSmtpEmail.sender = { name: this.senderName, email: this.senderEmail };
+      sendSmtpEmail.to = [{ email: email }];
+      
+      // Add tags for tracking
+      sendSmtpEmail.tags = ["registration", "otp"];
+      
+      try {
+        const result = await this.apiInstance.sendTransacEmail(sendSmtpEmail);
+        console.log('[BREVO] Registration OTP sent successfully:', result);
+        return result;
+      } catch (brevoError) {
+        console.error('[BREVO] Error sending via Brevo, fallback to mailer:', brevoError.message);
+        // Fallback to mailer
+        return await this.sendViaMail(email, 'Verify Your Email - THE DIGITAL TRADING', 
+          this.getRegistrationTemplate(otp, verificationUrl));
+      }
     } catch (error) {
-      console.error('Error sending registration OTP via Brevo:', error);
+      console.error('[RESEND OTP] Fatal error:', error);
       throw error;
     }
   }
 
   // Send password reset OTP
   async sendPasswordResetOTP(email, otp, resetUrl) {
-    const sendSmtpEmail = new brevo.SendSmtpEmail();
-    
-    sendSmtpEmail.subject = "Password Reset - THE DIGITAL TRADING";
-    sendSmtpEmail.htmlContent = this.getPasswordResetTemplate(otp, resetUrl);
-    sendSmtpEmail.sender = { name: this.senderName, email: this.senderEmail };
-    sendSmtpEmail.to = [{ email: email }];
-    
-    sendSmtpEmail.tags = ["password-reset", "otp"];
-    
     try {
-      const result = await this.apiInstance.sendTransacEmail(sendSmtpEmail);
-      console.log('Password reset OTP sent via Brevo:', result);
-      return result;
+      if (!this.brevoAvailable || !this.apiInstance) {
+        console.log('[PASSWORD RESET] Brevo not available, using fallback mailer');
+        return await this.sendViaMail(email, 'Password Reset - THE DIGITAL TRADING',
+          this.getPasswordResetTemplate(otp, resetUrl));
+      }
+
+      const sendSmtpEmail = new brevo.SendSmtpEmail();
+      
+      sendSmtpEmail.subject = "Password Reset - THE DIGITAL TRADING";
+      sendSmtpEmail.htmlContent = this.getPasswordResetTemplate(otp, resetUrl);
+      sendSmtpEmail.sender = { name: this.senderName, email: this.senderEmail };
+      sendSmtpEmail.to = [{ email: email }];
+      
+      sendSmtpEmail.tags = ["password-reset", "otp"];
+      
+      try {
+        const result = await this.apiInstance.sendTransacEmail(sendSmtpEmail);
+        console.log('[BREVO] Password reset OTP sent successfully:', result);
+        return result;
+      } catch (brevoError) {
+        console.error('[BREVO] Error sending password reset, fallback to mailer:', brevoError.message);
+        return await this.sendViaMail(email, 'Password Reset - THE DIGITAL TRADING',
+          this.getPasswordResetTemplate(otp, resetUrl));
+      }
     } catch (error) {
-      console.error('Error sending password reset OTP via Brevo:', error);
+      console.error('[PASSWORD RESET] Fatal error:', error);
       throw error;
     }
   }
 
   // Send profile edit OTP
   async sendProfileEditOTP(email, otp) {
-    const sendSmtpEmail = new brevo.SendSmtpEmail();
-    
-    sendSmtpEmail.subject = "Profile Edit Confirmation - THE DIGITAL TRADING";
-    sendSmtpEmail.htmlContent = this.getProfileEditTemplate(otp);
-    sendSmtpEmail.sender = { name: this.senderName, email: this.senderEmail };
-    sendSmtpEmail.to = [{ email: email }];
-    
-    sendSmtpEmail.tags = ["profile-edit", "otp"];
-    
     try {
-      const result = await this.apiInstance.sendTransacEmail(sendSmtpEmail);
-      console.log('Profile edit OTP sent via Brevo:', result);
-      return result;
+      if (!this.brevoAvailable || !this.apiInstance) {
+        console.log('[PROFILE EDIT] Brevo not available, using fallback mailer');
+        return await this.sendViaMail(email, 'Profile Edit Confirmation - THE DIGITAL TRADING',
+          this.getProfileEditTemplate(otp));
+      }
+
+      const sendSmtpEmail = new brevo.SendSmtpEmail();
+      
+      sendSmtpEmail.subject = "Profile Edit Confirmation - THE DIGITAL TRADING";
+      sendSmtpEmail.htmlContent = this.getProfileEditTemplate(otp);
+      sendSmtpEmail.sender = { name: this.senderName, email: this.senderEmail };
+      sendSmtpEmail.to = [{ email: email }];
+      
+      sendSmtpEmail.tags = ["profile-edit", "otp"];
+      
+      try {
+        const result = await this.apiInstance.sendTransacEmail(sendSmtpEmail);
+        console.log('[BREVO] Profile edit OTP sent successfully:', result);
+        return result;
+      } catch (brevoError) {
+        console.error('[BREVO] Error sending profile edit, fallback to mailer:', brevoError.message);
+        return await this.sendViaMail(email, 'Profile Edit Confirmation - THE DIGITAL TRADING',
+          this.getProfileEditTemplate(otp));
+      }
     } catch (error) {
-      console.error('Error sending profile edit OTP via Brevo:', error);
+      console.error('[PROFILE EDIT] Fatal error:', error);
       throw error;
     }
   }
 
   // Send email verification OTP
   async sendEmailVerificationOTP(email, otp) {
-    const sendSmtpEmail = new brevo.SendSmtpEmail();
-    
-    sendSmtpEmail.subject = "Email Verification - THE DIGITAL TRADING";
-    sendSmtpEmail.htmlContent = this.getEmailVerificationTemplate(otp);
-    sendSmtpEmail.sender = { name: this.senderName, email: this.senderEmail };
-    sendSmtpEmail.to = [{ email: email }];
-    
-    sendSmtpEmail.tags = ["email-verification", "otp"];
-    
     try {
-      const result = await this.apiInstance.sendTransacEmail(sendSmtpEmail);
-      console.log('Email verification OTP sent via Brevo:', result);
+      if (!this.brevoAvailable || !this.apiInstance) {
+        console.log('[EMAIL VERIFICATION] Brevo not available, using fallback mailer');
+        return await this.sendViaMail(email, 'Email Verification - THE DIGITAL TRADING',
+          this.getEmailVerificationTemplate(otp));
+      }
+
+      const sendSmtpEmail = new brevo.SendSmtpEmail();
+      
+      sendSmtpEmail.subject = "Email Verification - THE DIGITAL TRADING";
+      sendSmtpEmail.htmlContent = this.getEmailVerificationTemplate(otp);
+      sendSmtpEmail.sender = { name: this.senderName, email: this.senderEmail };
+      sendSmtpEmail.to = [{ email: email }];
+      
+      sendSmtpEmail.tags = ["email-verification", "otp"];
+      
+      try {
+        const result = await this.apiInstance.sendTransacEmail(sendSmtpEmail);
+        console.log('[BREVO] Email verification OTP sent successfully:', result);
+        return result;
+      } catch (brevoError) {
+        console.error('[BREVO] Error sending email verification, fallback to mailer:', brevoError.message);
+        return await this.sendViaMail(email, 'Email Verification - THE DIGITAL TRADING',
+          this.getEmailVerificationTemplate(otp));
+      }
+    } catch (error) {
+      console.error('[EMAIL VERIFICATION] Fatal error:', error);
+      throw error;
+    }
+  }
+
+  // Helper method to send via fallback mailer
+  async sendViaMail(email, subject, htmlContent) {
+    try {
+      const result = await sendMail({
+        to: email,
+        subject: subject,
+        html: htmlContent
+      });
+      console.log('[MAILER] Email sent successfully via fallback mailer');
       return result;
     } catch (error) {
-      console.error('Error sending email verification OTP via Brevo:', error);
-      throw error;
+      console.error('[MAILER] Error sending mail:', error);
+      throw new Error(`Failed to send email via both Brevo and fallback mailer: ${error.message}`);
     }
   }
 
