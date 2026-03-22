@@ -13,7 +13,7 @@ export default function NotificationProvider({ children }) {
   useEffect(() => {
     if (!socket) return;
     const handler = (data) => {
-      // Show notification for all pages since Smartsupp handles chat globally
+      // Show notification for all pages since Tawk.to handles chat globally
       toast.info(
         <div>
           <strong>{data.title}</strong>
@@ -21,7 +21,7 @@ export default function NotificationProvider({ children }) {
           <button
             style={{ marginTop: 8, color: '#007bff', background: 'none', border: 'none', cursor: 'pointer' }}
             onClick={() => {
-              // Smartsupp chat widget will handle support interactions
+              // Tawk.to chat widget will handle support interactions
                 toast.dismiss();
               }}
             >

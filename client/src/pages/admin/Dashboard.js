@@ -195,9 +195,9 @@ const AdminDashboard = () => {
               <h2 className="text-lg md:text-xl font-bold mb-2 text-yellow-100 flex items-center gap-2">
                 <FiMessageCircle className="text-yellow-300" />
                 Live Chat Support 
-                <span className="text-sm md:text-base font-normal text-yellow-300">(Smartsupp)</span>
+                <span className="text-sm md:text-base font-normal text-yellow-300">(Tawk.to)</span>
               </h2>
-              <p className="text-sm md:text-base text-yellow-200">Manage customer conversations through Smartsupp dashboard.</p>
+              <p className="text-sm md:text-base text-yellow-200">Manage customer conversations through Tawk.to dashboard.</p>
             </div>
             <a 
               href="https://www.smartsupp.com/app/" 
